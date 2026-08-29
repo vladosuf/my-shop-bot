@@ -39,41 +39,35 @@ async def start_command(message: Message):
         reply_markup=keyboard
     )
 
+
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
     """Показываем список товаров + ручной ввод (2 столбца)"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        # Ряд 1: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 50 — 65 ₽", callback_data="buy_50"),
             InlineKeyboardButton(text="⭐ 100 — 130 ₽", callback_data="buy_100"),
         ],
-        # Ряд 2: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 150 — 195 ₽", callback_data="buy_150"),
             InlineKeyboardButton(text="⭐ 200 — 260 ₽", callback_data="buy_200"),
         ],
-        # Ряд 3: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 250 — 325 ₽", callback_data="buy_250"),
             InlineKeyboardButton(text="⭐ 500 — 650 ₽", callback_data="buy_500"),
         ],
-        # Ряд 4: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 750 — 975 ₽", callback_data="buy_750"),
             InlineKeyboardButton(text="⭐ 1000 — 1300 ₽", callback_data="buy_1000"),
         ],
-        # Ряд 5: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 1750 — 2275 ₽", callback_data="buy_1750"),
             InlineKeyboardButton(text="⭐ 2500 — 3250 ₽", callback_data="buy_2500"),
         ],
-        # Ряд 6: 2 столбца
         [
             InlineKeyboardButton(text="⭐ 5000 — 6500 ₽", callback_data="buy_5000"),
             InlineKeyboardButton(text="📝 Своё число", callback_data="custom_amount"),
         ],
-        # Ряд 7: Назад на всю ширину
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
         ],
@@ -87,7 +81,6 @@ async def show_products(callback: types.CallbackQuery):
         parse_mode="Markdown"
     )
     await callback.answer()
-
 
 
 @dp.callback_query(F.data == "custom_amount")
