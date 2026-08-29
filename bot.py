@@ -41,7 +41,7 @@ async def start_command(message: Message):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
-            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
@@ -70,7 +70,7 @@ async def help_command(message: Message):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
-            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
@@ -598,7 +598,7 @@ async def back_to_menu(callback: types.CallbackQuery):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
-            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
