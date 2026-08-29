@@ -103,6 +103,8 @@ async def show_info(callback: types.CallbackQuery):
     )
     await callback.answer()
 
+dp.include_router(admin_router)
+
 async def main():
     await dp.start_polling(bot)
 
