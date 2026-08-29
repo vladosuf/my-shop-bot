@@ -169,7 +169,7 @@ async def gift_friend_start(callback: types.CallbackQuery):
         "Чтобы подарить Звёзды другу:\n\n"
         "1️⃣ Укажи *Username* друга\n"
         "   (убедись что ввёл правильно, при опечатке вернуть звёзды не получится)\n\n"
-        "📝 Напиши в чат username друга (например: @ivan или ivan)",
+        "📝 Напиши в чат username друга (например: @ivan )",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -242,7 +242,7 @@ async def gift_process(callback: types.CallbackQuery):
     if data == "cancel":
         # Отмена дарения
         user_gift_data.pop(user_id, None)
-        await callback.message.edit_text("❌ Дарение отменено.")
+        await callback.message.edit_text("❌ Отправка подарка отменена.")
         await callback.answer()
         return
     
@@ -406,7 +406,7 @@ async def gift_cancel(callback: types.CallbackQuery):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
-            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
