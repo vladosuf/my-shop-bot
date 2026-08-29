@@ -44,6 +44,9 @@ async def start_command(message: Message):
             InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
         ],
         [
+            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
+        ],
+        [
             InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
         ],
         [
@@ -53,7 +56,7 @@ async def start_command(message: Message):
     
     await message.answer(
         "🚀 Привет!\n\n"
-        "С помощью этого бота можно купить ⭐Telegram Звёзды.\n"
+        "С помощью этого бота можно купить и подарить ⭐Telegram Звёзды.\n"
         "Выбери действие ниже:",
         reply_markup=keyboard
     )
@@ -68,6 +71,9 @@ async def help_command(message: Message):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
         ],
         [
             InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
@@ -161,6 +167,34 @@ async def gift_friend(callback: types.CallbackQuery):
         "3. Оплати\n\n"
         "⭐ Звёзды будут зачислены на счёт друга!\n\n"
         "🚀 *Скоро появится!*",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============================================
+# КНОПКА: НОВОСТИ
+# ============================================
+@dp.callback_query(F.data == "news")
+async def news(callback: types.CallbackQuery):
+    """Новости и канал"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/VeltharShop"),
+        ],
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
+        ]
+    ])
+    
+    await callback.message.edit_text(
+        "📢 *Новости*\n\n"
+        "Подпишись на наш Telegram канал, чтобы быть в курсе:\n"
+        "🔥 Акций и скидок\n"
+        "⭐ Новых пакетов Звёзд\n"
+        "🎁 Розыгрышей и подарков\n\n"
+        "👇 Нажми на кнопку ниже, чтобы перейти в канал:",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -303,6 +337,9 @@ async def back_to_menu(callback: types.CallbackQuery):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
         ],
         [
             InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
