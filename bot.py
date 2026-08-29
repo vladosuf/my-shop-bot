@@ -6,6 +6,7 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
 from aiogram.enums import ContentType
 from dotenv import load_dotenv
+from admin import router as admin_router
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -14,6 +15,9 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+
+dp.include_router(admin_router)
 
 @dp.message(Command("start"))
 async def start_command(message: Message):
