@@ -27,6 +27,7 @@ async def set_main_menu():
     menu_commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
         BotCommand(command="help", description="ℹ️ Помощь"),
+        BotCommand(command="menu", description="📋 Обновить меню"),
     ]
     await bot.set_my_commands(menu_commands)
 
@@ -70,6 +71,18 @@ async def help_command(message: Message):
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
+
+
+@dp.message(Command("menu"))
+async def menu_command(message: Message):
+    """Принудительная установка кнопки Меню"""
+    menu_commands = [
+        BotCommand(command="start", description="🚀 Главное меню"),
+        BotCommand(command="help", description="ℹ️ Помощь"),
+        BotCommand(command="menu", description="📋 Обновить меню"),
+    ]
+    await bot.set_my_commands(menu_commands)
+    await message.answer("✅ Кнопка Меню обновлена! Перезапусти Telegram, чтобы увидеть изменения.")
 
 
 @dp.callback_query(F.data == "buy_stars")
