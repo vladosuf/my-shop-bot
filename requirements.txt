@@ -1,4 +1,3 @@
 aiogram 
 python-dotenv 
 Flask 
-nest_asyncio
