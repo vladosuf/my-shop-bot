@@ -244,10 +244,8 @@ async def show_info(callback: types.CallbackQuery):
 
 async def main():
     try:
-        # Устанавливаем кнопку Меню
         await set_main_menu()
         logger.info("✅ Кнопка Меню установлена!")
-        
         logger.info("🚀 Бот запущен и готов к работе!")
         await dp.start_polling(bot)
     except Exception as e:
