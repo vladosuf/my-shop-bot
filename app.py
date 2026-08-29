@@ -1,10 +1,12 @@
 import os
-import threading
-from flask import Flask
-from bot import bot, dp
-from aiogram.types import Update
 import asyncio
 import logging
+from flask import Flask
+from bot import bot, dp
+import nest_asyncio  # <-- Новая библиотека для решения проблемы!
+
+# Применяем патч для asyncio
+nest_asyncio.apply()
 
 app = Flask(__name__)
 
@@ -16,12 +18,21 @@ def index():
 def health():
     return "OK"
 
-def run_bot():
-    asyncio.run(dp.start_polling(bot))
+async def run_bot():
+    """Запускает бота в асинхронном режиме"""
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        logging.error(f"Бот упал с ошибкой: {e}")
 
 if __name__ == '__main__':
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
+    # Запускаем бота в том же потоке, где и веб-сервер
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    # Запускаем бота как фоновую задачу
+    bot_task = loop.create_task(run_bot())
+    
+    # Запускаем веб-сервер (Flask) в том же потоке
+    port = int(os.environ.get('PORT', 10000))
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
