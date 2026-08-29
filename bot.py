@@ -38,27 +38,53 @@ async def start_command(message: Message):
 
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
+    """Показываем список товаров"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="⭐ 100 Stars — 150 ₽", callback_data="buy_100"),
-            InlineKeyboardButton(text="⭐ 500 Stars — 700 ₽", callback_data="buy_500"),
+            InlineKeyboardButton(text="⭐ 50 Stars — 65 ₽", callback_data="buy_50"),
+            InlineKeyboardButton(text="⭐ 100 Stars — 130 ₽", callback_data="buy_100"),
+            InlineKeyboardButton(text="⭐ 150 Stars — 195 ₽", callback_data="buy_150"),
         ],
         [
-            InlineKeyboardButton(text="⭐ 1000 Stars — 1350 ₽", callback_data="buy_1000"),
+            InlineKeyboardButton(text="⭐ 200 Stars — 260 ₽", callback_data="buy_200"),
+            InlineKeyboardButton(text="⭐ 250 Stars — 325 ₽", callback_data="buy_250"),
+            InlineKeyboardButton(text="⭐ 500 Stars — 650 ₽", callback_data="buy_500"),
+        ],
+        [
+            InlineKeyboardButton(text="⭐ 750 Stars — 975 ₽", callback_data="buy_750"),
+            InlineKeyboardButton(text="⭐ 1000 Stars — 1300 ₽", callback_data="buy_1000"),
+            InlineKeyboardButton(text="⭐ 2500 Stars — 3250 ₽", callback_data="buy_2500"),
+        ],
+        [
             InlineKeyboardButton(text="⭐ 5000 Stars — 6500 ₽", callback_data="buy_5000"),
         ],
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
         ]
     ])
-    await callback.message.edit_text("Выбери нужный пакет Stars:", reply_markup=keyboard)
+    
+    await callback.message.edit_text(
+        "🌟 Выбери нужный пакет Stars:",
+        reply_markup=keyboard
+    )
     await callback.answer()
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_purchase(callback: types.CallbackQuery):
     product_code = callback.data.split("_")[1]
     stars_amount = int(product_code)
-    prices = {100: 150, 500: 700, 1000: 1350, 5000: 6500}
+    prices = {
+    50: 65,
+    100: 130,
+    150: 195,
+    200: 260,
+    250: 325,
+    500: 650,
+    750: 975,
+    1000: 1300,
+    2500: 3250,
+    5000: 6500
+}
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title=f"⭐ {stars_amount} Stars",
