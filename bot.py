@@ -20,7 +20,8 @@ dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def start_command(message: Message):
-logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
+    logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
+
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -30,7 +31,7 @@ logger.info(f"👤 Пользователь {message.from_user.id} запуст�
             InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
         ]
     ])
-    await message.answer(
+    await message.answer( 
         "🌟 Привет! Я бот для продажи Telegram Stars.\n\nЗдесь ты можешь купить звезды для своих каналов и ботов.\nВыбери действие ниже:",
         reply_markup=keyboard
     )
@@ -80,7 +81,7 @@ async def successful_payment(message: Message):
     payload = payment.invoice_payload
     stars_amount = payload.split("_")[1]
 
-logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Stars")
+    logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Stars")
 
     await message.answer(
         f"✅ Оплата прошла успешно!\n\nТы купил {stars_amount} Stars.\n📦 Товар отправлен на твой баланс.\n\nСпасибо за покупку! 🌟"
