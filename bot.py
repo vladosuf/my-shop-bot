@@ -41,14 +41,20 @@ async def start_command(message: Message):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
+            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
+        ],
+        [
             InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
         ]
     ])
     
     await message.answer(
         "🚀 Привет!\n\n"
-        "С помощью этого бота можно купить ⭐Звёзды.\n"
-        "Выбери действие чтобы перейти к покупке",
+        "С помощью этого бота можно купить ⭐Telegram Звёзды.\n"
+        "Выбери действие ниже:",
         reply_markup=keyboard
     )
 
@@ -61,13 +67,19 @@ async def help_command(message: Message):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
+            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
+        ],
+        [
             InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
         ]
     ])
     
     await message.answer(
         "🚀 *Главное меню*\n\n"
-        "Выбери действие:",
+        "Покупай ⭐Telegram Звёзды и дари их друзьям!",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -85,6 +97,9 @@ async def menu_command(message: Message):
     await message.answer("✅ Кнопка Меню обновлена! Перезапусти Telegram, чтобы увидеть изменения.")
 
 
+# ============================================
+# КНОПКА: КУПИТЬ ЗВЁЗДЫ
+# ============================================
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -126,6 +141,59 @@ async def show_products(callback: types.CallbackQuery):
     await callback.answer()
 
 
+# ============================================
+# КНОПКА: ПОДАРИТЬ ДРУГУ
+# ============================================
+@dp.callback_query(F.data == "gift_friend")
+async def gift_friend(callback: types.CallbackQuery):
+    """Подарить другу"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
+        ]
+    ])
+    
+    await callback.message.edit_text(
+        "🎁 *Подарок другу*\n\n"
+        "Чтобы подарить Звёзды другу:\n"
+        "1. Выбери пакет Звёзд\n"
+        "2. Укажи username друга\n"
+        "3. Оплати\n\n"
+        "⭐ Звёзды будут зачислены на счёт друга!\n\n"
+        "🚀 *Скоро появится!*",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============================================
+# КНОПКА: ПОДДЕРЖКА
+# ============================================
+@dp.callback_query(F.data == "support")
+async def support(callback: types.CallbackQuery):
+    """Поддержка"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
+        ]
+    ])
+    
+    await callback.message.edit_text(
+        "🆘 *Поддержка*\n\n"
+        "Если у тебя возникли вопросы или проблемы:\n\n"
+        "📧 Свяжись с нами:\n"
+        "👤 @vladosuf\n\n"
+        "📌 Мы ответим в ближайшее время!",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+# ============================================
+# РУЧНОЙ ВВОД КОЛИЧЕСТВА
+# ============================================
 @dp.callback_query(F.data == "custom_amount")
 async def custom_amount_input(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -180,6 +248,9 @@ async def handle_custom_amount(message: Message):
     )
 
 
+# ============================================
+# ОФОРМЛЕНИЕ ЗАКАЗА И ОПЛАТА
+# ============================================
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_purchase(callback: types.CallbackQuery):
     product_code = callback.data.split("_")[1]
@@ -221,6 +292,9 @@ async def successful_payment(message: Message):
     )
 
 
+# ============================================
+# НАЗАД В МЕНЮ
+# ============================================
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -228,17 +302,27 @@ async def back_to_menu(callback: types.CallbackQuery):
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
         ],
         [
+            InlineKeyboardButton(text="🎁 Подарить другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
+        ],
+        [
             InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
         ]
     ])
     
     await callback.message.edit_text(
-        "🚀 Главное меню:\n\nВыбери действие:",
+        "🚀 Главное меню:\n\n"
+        "Покупай ⭐Telegram Звёзды и дари их друзьям!",
         reply_markup=keyboard
     )
     await callback.answer()
 
 
+# ============================================
+# КНОПКА: О БОТЕ
+# ============================================
 @dp.callback_query(F.data == "info")
 async def show_info(callback: types.CallbackQuery):
     await callback.message.edit_text(
@@ -255,6 +339,9 @@ async def show_info(callback: types.CallbackQuery):
     await callback.answer()
 
 
+# ============================================
+# ЗАПУСК БОТА
+# ============================================
 async def main():
     try:
         await set_main_menu()
