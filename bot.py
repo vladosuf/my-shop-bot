@@ -7,6 +7,7 @@ from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, L
 from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
+from logger import logger
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -19,6 +20,8 @@ dp = Dispatcher()
 
 @dp.message(Command("start"))
 async def start_command(message: Message):
+logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
+
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🛍️ Купить Stars", callback_data="buy_stars"),
@@ -76,6 +79,9 @@ async def successful_payment(message: Message):
     payment = message.successful_payment
     payload = payment.invoice_payload
     stars_amount = payload.split("_")[1]
+
+logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Stars")
+
     await message.answer(
         f"✅ Оплата прошла успешно!\n\nТы купил {stars_amount} Stars.\n📦 Товар отправлен на твой баланс.\n\nСпасибо за покупку! 🌟"
     )
@@ -104,7 +110,12 @@ async def show_info(callback: types.CallbackQuery):
 dp.include_router(admin_router)
 
 async def main():
+try:
+    logger.info("🚀 Бот запущен и готов к работе!")
     await dp.start_polling(bot)
+except Exception as e:
+    logger.error(f"❌ Критическая ошибка: {e}")
+    raise
 
 if __name__ == "__main__":
     asyncio.run(main())
