@@ -42,7 +42,6 @@ async def start_command(message: Message):
 
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
-    """Показываем список товаров + ручной ввод (2 столбца)"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="⭐ 50 — 65 ₽", callback_data="buy_50"),
@@ -74,18 +73,16 @@ async def show_products(callback: types.CallbackQuery):
     ])
     
     await callback.message.edit_text(
-        "🚀 *Выбери пакет Звёзд:*\n\n"
-        "⭐ Нажми на готовый пакет или выбери *Своё число*\n"
-        "📌 *Курс:* 1 Звезда = 1.3 ₽",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        "🚀 Выбери пакет Звёзд:\n\n"
+        "⭐ Нажми на готовый пакет или выбери Своё число\n"
+        "📌 Курс: 1 Звезда = 1.3 ₽",
+        reply_markup=keyboard
     )
     await callback.answer()
 
 
 @dp.callback_query(F.data == "custom_amount")
 async def custom_amount_input(callback: types.CallbackQuery):
-    """Запрашиваем у пользователя своё количество"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад к пакетам", callback_data="buy_stars"),
@@ -93,19 +90,17 @@ async def custom_amount_input(callback: types.CallbackQuery):
     ])
     
     await callback.message.edit_text(
-        "📝 *Введи нужное количество Звёзд:*\n\n"
-        "Например: `100` или `2500`\n\n"
-        "💰 *Цена:* твоё_число × 1.3 ₽\n\n"
+        "📝 Введи нужное количество Звёзд:\n\n"
+        "Например: 100 или 2500\n\n"
+        "💰 Цена: твоё_число × 1.3 ₽\n\n"
         "Просто напиши число в чат!",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        reply_markup=keyboard
     )
     await callback.answer()
 
 
 @dp.message(lambda msg: msg.text and msg.text.isdigit())
 async def handle_custom_amount(message: Message):
-    """Обрабатываем ручной ввод количества"""
     stars_amount = int(message.text)
     
     if stars_amount < 1:
@@ -132,40 +127,18 @@ async def handle_custom_amount(message: Message):
     ])
     
     await message.answer(
-        f"📝 Ты выбрал *{stars_amount} Звёзд*\n\n"
-        f"💰 Стоимость: *{price_rub} ₽*\n"
+        f"📝 Ты выбрал {stars_amount} Звёзд\n\n"
+        f"💰 Стоимость: {price_rub} ₽\n"
         f"📌 Курс: 1 Звезда = 1.3 ₽\n\n"
         f"👇 Нажми кнопку, чтобы подтвердить покупку:",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
+        reply_markup=keyboard
     )
 
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_purchase(callback: types.CallbackQuery):
-    """Создаем счет для оплаты Stars"""
-    
     product_code = callback.data.split("_")[1]
     stars_amount = int(product_code)
-    
-    prices = {
-        50: 65,
-        100: 130,
-        150: 195,
-        200: 260,
-        250: 325,
-        500: 650,
-        750: 975,
-        1000: 1300,
-        1750: 2275,
-        2500: 3250,
-        5000: 6500
-    }
-    
-    # Если количество не из списка (ручной ввод), считаем по курсу
-    if stars_amount not in prices:
-        price = int(stars_amount * 1.3)
-        prices[stars_amount] = price
     
     await bot.send_invoice(
         chat_id=callback.from_user.id,
@@ -179,20 +152,16 @@ async def process_purchase(callback: types.CallbackQuery):
         ],
         start_parameter="shop",
     )
-    
     await callback.answer()
 
 
 @dp.pre_checkout_query()
 async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
-    """Проверка перед оплатой"""
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
-    """Оплата прошла успешно!"""
-    
     payment = message.successful_payment
     payload = payment.invoice_payload
     stars_amount = payload.split("_")[1]
@@ -209,7 +178,6 @@ async def successful_payment(message: Message):
 
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
-    """Возврат в главное меню"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
@@ -228,18 +196,16 @@ async def back_to_menu(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "info")
 async def show_info(callback: types.CallbackQuery):
-    """Информация о боте"""
     await callback.message.edit_text(
-        "ℹ️ *О боте*\n\n"
+        "ℹ️ О боте\n\n"
         "Этот бот помогает покупать Telegram Звёзды.\n"
         "Звёзды — это валюта Telegram для поддержки авторов.\n\n"
-        "💰 *Как это работает:*\n"
+        "💰 Как это работает:\n"
         "1. Выбери нужный пакет\n"
         "2. Оплати внутри Telegram\n"
         "3. Получи Звёзды на свой аккаунт\n\n"
-        "🚀 *Курс:* 1 Звезда = 1.3 ₽\n\n"
-        "❓ Вопросы? Пиши @vladosuf",
-        parse_mode="Markdown"
+        "🚀 Курс: 1 Звезда = 1.3 ₽\n\n"
+        "❓ Вопросы? Пиши @vladosuf"
     )
     await callback.answer()
 
