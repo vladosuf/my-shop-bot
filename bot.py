@@ -17,8 +17,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
 
-dp.include_router(admin_router)
-
 @dp.message(Command("start"))
 async def start_command(message: Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
