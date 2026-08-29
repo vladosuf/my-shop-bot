@@ -3,7 +3,7 @@ import logging
 import os
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery, BotCommand
 from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
@@ -17,6 +17,18 @@ logging.basicConfig(level=logging.INFO)
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 dp.include_router(admin_router)
+
+
+# ============================================
+# НАСТРОЙКА КНОПКИ МЕНЮ
+# ============================================
+async def set_main_menu():
+    """Устанавливает кнопку Меню рядом со строкой поиска"""
+    menu_commands = [
+        BotCommand(command="start", description="🚀 Главное меню"),
+        BotCommand(command="help", description="ℹ️ Помощь"),
+    ]
+    await bot.set_my_commands(menu_commands)
 
 
 @dp.message(Command("start"))
@@ -37,6 +49,26 @@ async def start_command(message: Message):
         "С помощью этого бота можно купить ⭐Звёзды.\n"
         "Выбери действие чтобы перейти к покупке",
         reply_markup=keyboard
+    )
+
+
+@dp.message(Command("help"))
+async def help_command(message: Message):
+    """Команда помощи - открывает главное меню"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
+        ],
+        [
+            InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
+        ]
+    ])
+    
+    await message.answer(
+        "🚀 *Главное меню*\n\n"
+        "Выбери действие:",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
     )
 
 
@@ -212,6 +244,10 @@ async def show_info(callback: types.CallbackQuery):
 
 async def main():
     try:
+        # Устанавливаем кнопку Меню
+        await set_main_menu()
+        logger.info("✅ Кнопка Меню установлена!")
+        
         logger.info("🚀 Бот запущен и готов к работе!")
         await dp.start_polling(bot)
     except Exception as e:
