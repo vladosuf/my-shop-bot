@@ -111,12 +111,12 @@ async def show_info(callback: types.CallbackQuery):
 dp.include_router(admin_router)
 
 async def main():
-try:
-    logger.info("🚀 Бот запущен и готов к работе!")
-    await dp.start_polling(bot)
-except Exception as e:
-    logger.error(f"❌ Критическая ошибка: {e}")
-    raise
+    try:
+        logger.info("🚀 Бот запущен и готов к работе!")
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.error(f"❌ Критическая ошибка: {e}")
+        raise
 
 if __name__ == "__main__":
     asyncio.run(main())
