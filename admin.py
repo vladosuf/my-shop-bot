@@ -4,6 +4,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from database import get_all_users, get_user_count
 from logger import logger
+from database import get_all_users_with_details
 
 router = Router()
 
@@ -64,21 +65,25 @@ async def admin_stats(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-
 @router.callback_query(lambda c: c.data == "admin_users")
 async def admin_users(callback: types.CallbackQuery):
-    """Пользователи"""
+    """Пользователи с подробной информацией"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    users = get_all_users()
+    users = get_all_users_with_details()
     user_count = len(users)
     
     text = f"👥 *Пользователи*\n\n👥 Всего: *{user_count}*\n\n"
+    text += "ID | Имя | @username\n"
+    text += "─" * 30 + "\n"
     
-    for i, user_id in enumerate(users[:20], 1):
-        text += f"{i}. `{user_id}`\n"
+    for user in users[:20]:
+        user_id, username, first_name, last_name, joined_at = user
+        name = first_name or "Без имени"
+        username_str = f"@{username}" if username else "Нет username"
+        text += f"`{user_id}` | {name} | {username_str}\n"
     
     if user_count > 20:
         text += f"\n...и ещё {user_count - 20} пользователей"
@@ -96,6 +101,7 @@ async def admin_users(callback: types.CallbackQuery):
     
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
+
 
 
 @router.callback_query(lambda c: c.data == "admin_mailing")

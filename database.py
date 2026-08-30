@@ -81,3 +81,16 @@ def reset_db():
     except Exception as e:
         print(f"❌ Ошибка при пересоздании БД: {e}")
         return False
+
+def get_all_users_with_details():
+    """Возвращает список всех пользователей с их данными"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, username, first_name, last_name, joined_at FROM users")
+        users = cursor.fetchall()
+        conn.close()
+        return users
+    except Exception as e:
+        print(f"❌ Ошибка при получении данных пользователей: {e}")
+        return []
