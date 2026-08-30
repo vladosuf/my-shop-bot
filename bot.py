@@ -625,7 +625,7 @@ async def show_info(callback: types.CallbackQuery):
 async def main():
     try:
         # Инициализируем базу данных
-        reset_db()
+        init_db()
         logger.info("✅ База данных инициализирована!")
         
         await set_main_menu()
