@@ -6,6 +6,7 @@ from aiogram.types import Message
 from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users
 from logger import logger
 from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users, update_user_activity
+from datetime import datetime
 
 router = Router()
 
@@ -68,7 +69,6 @@ async def admin_stats(callback: types.CallbackQuery):
     )
     await callback.answer()
 
-
 @router.callback_query(lambda c: c.data == "admin_users")
 async def admin_users(callback: types.CallbackQuery):
     """Пользователи с подробной информацией и активностью"""
@@ -80,13 +80,17 @@ async def admin_users(callback: types.CallbackQuery):
     user_count = len(users)
     
     text = f"👥 *Пользователи*\n\n👥 Всего: *{user_count}*\n\n"
-    text += "ID | Имя | Активность\n"
-    text += "─" * 35 + "\n"
+    text += "┌────────────┬────────────┬────────────┐\n"
+    text += "│ ID         │ Имя        │ Активность │\n"
+    text += "├────────────┼────────────┼────────────┤\n"
     
     for user in users[:20]:
         user_id, username, first_name, last_name, joined_at, last_active = user
+        
+        # Формируем имя с username
         name = first_name or "Без имени"
-        username_str = f"@{username}" if username else "Нет username"
+        if username:
+            name = f"{name} (@{username})"
         
         # Определяем активность
         if last_active:
@@ -96,13 +100,13 @@ async def admin_users(callback: types.CallbackQuery):
             elif days == 1:
                 status = "🟡 Вчера"
             elif days < 7:
-                status = f"🟠 {days} дня назад"
+                status = f"🟠 {days}д"
             else:
-                status = f"🔴 {days} дней назад"
+                status = f"🔴 {days}д"
         else:
             status = "⚪ Неизвестно"
         
-        text += f"`{user_id}` | {name} | {status}\n"
+        text += f"│ {user_id} │ {name[:15]} │ {status} │\n"
     
     if user_count > 20:
         text += f"\n...и ещё {user_count - 20} пользователей"
