@@ -68,3 +68,15 @@ def get_user_count():
         print(f"❌ Ошибка при подсчёте пользователей: {e}")
         return 0
 
+def reset_db():
+    """Удаляет старую базу данных и создаёт новую"""
+    try:
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print(f"🗑️ Старая база {DB_PATH} удалена!")
+        init_db()
+        print("✅ База данных пересоздана!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при пересоздании БД: {e}")
+        return False
