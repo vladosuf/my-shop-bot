@@ -29,6 +29,23 @@ def init_db():
     
     conn.close()
 
+def force_create_table():
+    """Принудительно создаёт таблицу users (даже если она есть)"""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            user_id INTEGER PRIMARY KEY,
+            username TEXT,
+            first_name TEXT,
+            last_name TEXT,
+            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    conn.commit()
+    conn.close()
+    print("✅ Таблица users принудительно создана!")
+
 def add_user(user_id, username=None, first_name=None, last_name=None):
     """Добавляет пользователя в базу данных"""
     conn = sqlite3.connect(DB_PATH)
@@ -66,3 +83,11 @@ def get_users_with_username():
     users = cursor.fetchall()
     conn.close()
     return users
+
+def delete_db():
+    """Удаляет базу данных (для отладки)"""
+    if os.path.exists(DB_PATH):
+        os.remove(DB_PATH)
+        print(f"🗑️ База данных {DB_PATH} удалена!")
+    else:
+        print("ℹ️ База данных не найдена")
