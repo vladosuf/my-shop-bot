@@ -7,18 +7,27 @@ def init_db():
     """Создаёт базу данных и таблицу пользователей"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            username TEXT,
-            first_name TEXT,
-            last_name TEXT,
-            joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    conn.commit()
+    
+    # Проверяем, существует ли таблица
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+    table_exists = cursor.fetchone()
+    
+    if not table_exists:
+        cursor.execute("""
+            CREATE TABLE users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+        print("✅ Таблица users создана!")
+    else:
+        print("✅ Таблица users уже существует")
+    
     conn.close()
-    print("✅ База данных инициализирована!")
 
 def add_user(user_id, username=None, first_name=None, last_name=None):
     """Добавляет пользователя в базу данных"""

@@ -161,7 +161,6 @@ async def show_products(callback: types.CallbackQuery):
 # ============================================
 
 # Временное хранилище для данных пользователя (в памяти)
-# В реальном проекте лучше использовать базу данных
 user_gift_data = {}
 
 @dp.callback_query(F.data == "gift_friend")
@@ -191,10 +190,8 @@ async def gift_friend_username(message: Message):
     """Обработка ввода username друга"""
     username = message.text.strip()
     
-    # Сохраняем username в временное хранилище
     user_gift_data[message.from_user.id] = {"friend_username": username}
     
-    # Показываем пакеты Stars для выбора
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="⭐ 50 — 65 ₽", callback_data="gift_50"),
@@ -235,9 +232,6 @@ async def gift_friend_username(message: Message):
 
 @dp.callback_query(F.data.startswith("gift_"))
 async def gift_process(callback: types.CallbackQuery):
-    """Обработка выбора пакета для подарка"""
-    
-    # Получаем username друга из временного хранилища
     user_id = callback.from_user.id
     if user_id not in user_gift_data:
         await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
@@ -245,19 +239,15 @@ async def gift_process(callback: types.CallbackQuery):
         return
     
     friend_username = user_gift_data[user_id]["friend_username"]
-    
-    # Определяем количество Stars
     data = callback.data.split("_")[1]
     
     if data == "cancel":
-        # Отмена дарения
         user_gift_data.pop(user_id, None)
         await callback.message.edit_text("❌ Отправка подарка отменена.")
         await callback.answer()
         return
     
     if data == "custom":
-        # Ручной ввод количества
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [
                 InlineKeyboardButton(text="🔙 Назад", callback_data="gift_cancel"),
@@ -270,17 +260,13 @@ async def gift_process(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    # Фиксированный пакет
     stars_amount = int(data)
-    
-    # Рассчитываем цену
     prices = {
         50: 65, 100: 130, 150: 195, 200: 260, 250: 325,
         500: 650, 750: 975, 1000: 1300, 1750: 2275, 2500: 3250, 5000: 6500
     }
     price_rub = prices.get(stars_amount, int(stars_amount * 1.3))
     
-    # Кнопка подтверждения
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(
@@ -307,7 +293,6 @@ async def gift_process(callback: types.CallbackQuery):
 
 @dp.message(lambda msg: msg.text and msg.text.isdigit() and msg.from_user.id in user_gift_data)
 async def gift_custom_amount(message: Message):
-    """Обработка ручного ввода количества для подарка"""
     stars_amount = int(message.text)
     
     if stars_amount < 50:
@@ -346,7 +331,6 @@ async def gift_custom_amount(message: Message):
 
 @dp.callback_query(F.data.startswith("gift_buy_"))
 async def gift_buy(callback: types.CallbackQuery):
-    """Оформление покупки подарка"""
     user_id = callback.from_user.id
     
     if user_id not in user_gift_data:
@@ -357,7 +341,6 @@ async def gift_buy(callback: types.CallbackQuery):
     friend_username = user_gift_data[user_id]["friend_username"]
     stars_amount = int(callback.data.split("_")[2])
     
-    # Отправляем счет в Telegram Stars
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title=f"🎁 Подарок для {friend_username}",
@@ -375,15 +358,12 @@ async def gift_buy(callback: types.CallbackQuery):
     await callback.message.delete()
 
 
-# Обработка успешной оплаты подарка
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def gift_successful_payment(message: Message):
-    """Оплата подарка прошла успешно"""
     payment = message.successful_payment
     payload = payment.invoice_payload
     
     if not payload.startswith("gift_"):
-        # Это не подарок, пропускаем
         return
     
     parts = payload.split("_")
@@ -392,11 +372,8 @@ async def gift_successful_payment(message: Message):
     stars_amount = int(parts[3])
     
     logger.info(f"🎁 Подарок: {message.from_user.id} подарил {stars_amount} Звёзд пользователю {friend_username}")
-    
-    # Очищаем данные пользователя
     user_gift_data.pop(message.from_user.id, None)
     
-    # Сообщение дарителю
     await message.answer(
         f"🎁 *Подарок отправлен!*\n\n"
         f"⭐ Ты подарил *{stars_amount} Звёзд*\n"
@@ -408,7 +385,6 @@ async def gift_successful_payment(message: Message):
 
 @dp.callback_query(F.data == "gift_cancel")
 async def gift_cancel(callback: types.CallbackQuery):
-    """Отмена дарения"""
     user_gift_data.pop(callback.from_user.id, None)
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -442,7 +418,6 @@ async def gift_cancel(callback: types.CallbackQuery):
 # ============================================
 @dp.callback_query(F.data == "news")
 async def news(callback: types.CallbackQuery):
-    """Новости и канал"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/VeltharShop"),
@@ -470,7 +445,6 @@ async def news(callback: types.CallbackQuery):
 # ============================================
 @dp.callback_query(F.data == "support")
 async def support(callback: types.CallbackQuery):
-    """Поддержка"""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
@@ -577,18 +551,13 @@ async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
 
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
-    """Оплата прошла успешно!"""
     payment = message.successful_payment
     payload = payment.invoice_payload
     
-    # Проверяем, это подарок или обычная покупка
     if payload.startswith("gift_"):
-        # Это подарок — обрабатываем в функции gift_successful_payment
         return
     
-    # Обычная покупка
     stars_amount = payload.split("_")[1]
-    
     logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Звёзд")
     
     await message.answer(
