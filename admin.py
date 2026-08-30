@@ -5,6 +5,7 @@ from aiogram.types import Message
 from database import get_all_users, get_user_count
 from logger import logger
 from database import get_all_users_with_details
+from datetime import datetime
 
 router = Router()
 
@@ -305,3 +306,90 @@ async def handle_mailing_message(message: types.Message):
     )
     
     mailing_data.pop(message.from_user.id, None)
+
+@router.callback_query(lambda c: c.data == "admin_users")
+async def admin_users(callback: types.CallbackQuery):
+    """Пользователи с подробной информацией и активностью"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    users = get_all_users_with_details()
+    user_count = len(users)
+    
+    text = f"👥 *Пользователи*\n\n👥 Всего: *{user_count}*\n\n"
+    text += "ID | Имя | Активность\n"
+    text += "─" * 35 + "\n"
+    
+    for user in users[:20]:
+        user_id, username, first_name, last_name, joined_at, last_active = user
+        name = first_name or "Без имени"
+        username_str = f"@{username}" if username else "Нет username"
+        
+        # Определяем активность
+        if last_active:
+            days = (datetime.now() - datetime.strptime(last_active, "%Y-%m-%d %H:%M:%S")).days
+            if days == 0:
+                status = "🟢 Сегодня"
+            elif days == 1:
+                status = "🟡 Вчера"
+            elif days < 7:
+                status = f"🟠 {days} дня назад"
+            else:
+                status = f"🔴 {days} дней назад"
+        else:
+            status = "⚪ Неизвестно"
+        
+        text += f"`{user_id}` | {name} | {status}\n"
+    
+    if user_count > 20:
+        text += f"\n...и ещё {user_count - 20} пользователей"
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text="🗑️ Удалить неактивных (30+ дней)",
+                    callback_data="admin_cleanup"
+                ),
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text="🔙 Назад",
+                    callback_data="admin_panel"
+                ),
+            ]
+        ]
+    )
+    
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "admin_cleanup")
+async def admin_cleanup(callback: types.CallbackQuery):
+    """Удаляет неактивных пользователей"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    inactive_users = get_inactive_users(30)
+    
+    if not inactive_users:
+        await callback.message.edit_text(
+            "✅ Нет неактивных пользователей для удаления.",
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        return
+    
+    removed = 0
+    for user_id, last_active in inactive_users:
+        if remove_user(user_id):
+            removed += 1
+    
+    await callback.message.edit_text(
+        f"🗑️ Удалено *{removed}* неактивных пользователей (активность более 30 дней).",
+        parse_mode="Markdown"
+    )
+    await callback.answer()

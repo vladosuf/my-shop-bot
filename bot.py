@@ -9,6 +9,7 @@ from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -638,3 +639,23 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ============================================
+# ОБРАБОТКА ЛЮБОГО СООБЩЕНИЯ
+# ============================================
+@dp.message()
+async def handle_all_messages(message: Message):
+    """Обрабатывает любое сообщение — обновляет активность"""
+    try:
+        # Проверяем, есть ли пользователь в БД
+        # Если нет — добавляем
+        add_user(
+            message.from_user.id,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name
+        )
+        # Обновляем время последней активности
+        update_user_activity(message.from_user.id)
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обновлении активности: {e}")
