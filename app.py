@@ -4,6 +4,7 @@ from flask import Flask
 from bot import bot, dp
 import threading
 import logging
+from database import init_db
 
 app = Flask(__name__)
 
@@ -23,6 +24,9 @@ def run_flask():
 async def run_bot():
     """Запускает бота в главном потоке"""
     try:
+        init_db()
+        logging.info("✅ База данных инициализирована!")
+
         logging.info("🚀 Запуск бота...")
         await dp.start_polling(bot)
     except Exception as e:
