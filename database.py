@@ -47,8 +47,11 @@ def add_user(user_id, username=None, first_name=None, last_name=None):
         """, (user_id, username, first_name, last_name))
         conn.commit()
         conn.close()
+        print(f"✅ Пользователь {user_id} добавлен в БД")
+        return True
     except Exception as e:
         print(f"❌ Ошибка при добавлении пользователя: {e}")
+        return False
 
 def get_all_users():
     """Возвращает список всех user_id"""
@@ -74,3 +77,17 @@ def get_user_count():
         return count
     except Exception as e:
         print(f"❌ Ошибка при подсчёте пользователей: {e}")
+        return 0
+
+def get_users_with_username():
+    """Возвращает всех пользователей с username для статистики"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT user_id, username, first_name, joined_at FROM users")
+        users = cursor.fetchall()
+        conn.close()
+        return users
+    except Exception as e:
+        print(f"❌ Ошибка при получении данных пользователей: {e}")
+        return []
