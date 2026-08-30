@@ -5,8 +5,8 @@ DB_PATH = "users.db"
 
 def init_db():
     """Создаёт базу данных и таблицу пользователей"""
-     print("🔧 ВХОД В init_db()!") 
-     try:
+    print("🔧 ВХОД В init_db()!") 
+    try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
