@@ -427,11 +427,14 @@ async def gift_buy(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ОДИН СТОЛБЕЦ)
+# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ИСПРАВЛЕННАЯ)
 # ============================================
 @dp.callback_query(F.data == "gift_premium")
 async def gift_premium_start(callback: types.CallbackQuery):
     """Начало процесса дарения Премиума"""
+    # Очищаем старые данные
+    user_gift_data.pop(callback.from_user.id, None)
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
@@ -450,14 +453,28 @@ async def gift_premium_start(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.message(lambda msg: msg.text and msg.text.startswith("@"))
+@dp.message()
 async def gift_premium_username(message: Message):
     """Обработка ввода username друга для подарка Премиума"""
+    # Проверяем, что пользователь находится в процессе дарения Премиума
+    if message.from_user.id not in user_gift_data:
+        return
+    
+    # Проверяем, что это текстовое сообщение
+    if not message.text:
+        return
+    
     username = message.text.strip()
     
+    # Если пользователь уже выбрал срок — выходим
+    if user_gift_data[message.from_user.id].get("gift_type") == "premium" and "friend_username" in user_gift_data[message.from_user.id]:
+        return
+    
+    # Сохраняем username
     user_gift_data[message.from_user.id] = {
         "friend_username": username,
-        "gift_type": "premium"
+        "gift_type": "premium",
+        "waiting_for": "premium_duration"
     }
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
