@@ -639,27 +639,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# ============================================
-# ОБРАБОТКА ЛЮБОГО СООБЩЕНИЯ
-# ============================================
-@dp.message()
-async def handle_all_messages(message: Message):
-    """Обрабатывает любое сообщение — обновляет активность"""
-    try:
-        # Проверяем, есть ли пользователь в БД
-        # Если нет — добавляем
-        add_user(
-            message.from_user.id,
-            message.from_user.username,
-            message.from_user.first_name,
-            message.from_user.last_name
-        )
-        # Обновляем время последней активности
-        update_user_activity(message.from_user.id)
-    except Exception as e:
-        logger.error(f"❌ Ошибка при обновлении активности: {e}")
-
-@dp.message(Command("admin"))
-async def test_admin(message: Message):
-    await message.answer("✅ Команда /admin получена!")
