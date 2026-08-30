@@ -641,26 +641,3 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-@dp.message()
-async def handle_all_messages(message: Message):
-    """Обновляет активность пользователя, но пропускает команды"""
-    
-    # Проверяем, является ли сообщение командой
-    # Если да — пропускаем
-    if message.text and message.text.startswith("/"):
-        return
-    
-    # Также пропускаем callback-запросы (они обрабатываются отдельно)
-    if message.content_type != ContentType.TEXT:
-        return
-    
-    try:
-        add_user(
-            message.from_user.id,
-            message.from_user.username,
-            message.from_user.first_name,
-            message.from_user.last_name
-        )
-        update_user_activity(message.from_user.id)
-    except Exception as e:
-        logger.error(f"❌ Ошибка при обновлении активности: {e}")
