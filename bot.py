@@ -148,7 +148,7 @@ async def show_products(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: ПОДАРИТЬ ДРУГУ
+# КНОПКА: ПОДАРИТЬ ЗВЁЗДЫ ДРУГУ
 # ============================================
 
 # Временное хранилище для данных пользователя (в памяти)
@@ -165,10 +165,11 @@ async def gift_friend_start(callback: types.CallbackQuery):
     ])
     
     await callback.message.edit_text(
-        "🎁 *Подарок другу*\n\n"
+        "🎁 *Подарок Звёзд другу*\n\n"
         "Чтобы подарить Звёзды другу:\n\n"
         "1️⃣ Укажи *Username* друга\n"
         "   (убедись что ввёл правильно, при опечатке вернуть звёзды не получится)\n\n"
+        "⚠️ Минимальное количество для подарка — 50 Звёзд\n\n"
         "📝 Напиши в чат username друга (например: @ivan )",
         reply_markup=keyboard,
         parse_mode="Markdown"
@@ -300,8 +301,8 @@ async def gift_custom_amount(message: Message):
     """Обработка ручного ввода количества для подарка"""
     stars_amount = int(message.text)
     
-    if stars_amount < 1:
-        await message.answer("❌ Минимум — 1 Звезда. Попробуй ещё раз.")
+    if stars_amount < 50:
+        await message.answer("❌ Минимальное количество для подарка — 50 Звёзд. Попробуй ещё раз.")
         return
     
     if stars_amount > 10000:
@@ -493,6 +494,7 @@ async def custom_amount_input(callback: types.CallbackQuery):
     await callback.message.edit_text(
         "📝 Введи нужное количество Звёзд:\n\n"
         "Например: 100 или 2500\n\n"
+        "⚠️ Минимальное количество — 50 Звёзд\n"
         "💰 Цена: твоё_число × 1.3 ₽\n\n"
         "Просто напиши число в чат!",
         reply_markup=keyboard
@@ -504,8 +506,8 @@ async def custom_amount_input(callback: types.CallbackQuery):
 async def handle_custom_amount(message: Message):
     stars_amount = int(message.text)
     
-    if stars_amount < 1:
-        await message.answer("❌ Минимум — 1 Звезда. Попробуй ещё раз.")
+    if stars_amount < 50:
+        await message.answer("❌ Минимальное количество — 50 Звёзд. Попробуй ещё раз.")
         return
     
     if stars_amount > 10000:
