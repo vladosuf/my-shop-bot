@@ -8,7 +8,7 @@ from logger import logger
 router = Router()
 
 # Твой Telegram ID (найди через @userinfobot)
-ADMIN_IDS = [486661245]  # Замени на свой ID!
+ADMIN_IDS = [1238597483]  # Замени на свой ID!
 
 # Временное хранилище для сообщений рассылки
 mailing_data = {}
