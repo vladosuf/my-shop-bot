@@ -11,6 +11,7 @@ from admin import router as admin_router
 from logger import logger
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user
 from aiogram.enums import ContentType
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -564,6 +565,9 @@ async def successful_payment(message: Message):
     
     stars_amount = payload.split("_")[1]
     logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Звёзд")
+    
+    # Сохраняем покупку в базу данных
+    add_purchase(message.from_user.id, int(stars_amount))
     
     await message.answer(
         f"✅ Оплата прошла успешно!\n\n"

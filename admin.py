@@ -3,10 +3,18 @@ from datetime import datetime
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
-from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users
+from database import (
+    get_all_users, 
+    get_user_count, 
+    get_all_users_with_details, 
+    remove_user, 
+    get_inactive_users, 
+    update_user_activity,
+    get_total_stars_sold,
+    get_today_stars_sold,
+    get_today_purchases_count
+)
 from logger import logger
-from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users, update_user_activity
-from datetime import datetime
 
 router = Router()
 
@@ -23,7 +31,8 @@ async def admin_panel(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         await message.answer("⛔ У тебя нет доступа к этой команде!")
         return
-
+    
+    # Обновляем активность админа
     update_user_activity(message.from_user.id)
     
     keyboard = types.InlineKeyboardMarkup(
@@ -52,22 +61,29 @@ async def admin_panel(message: Message):
 
 @router.callback_query(lambda c: c.data == "admin_stats")
 async def admin_stats(callback: types.CallbackQuery):
-    """Статистика"""
+    """Статистика с информацией о продажах"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
     user_count = get_user_count()
+    total_stars = get_total_stars_sold()
+    today_stars = get_today_stars_sold()
+    today_purchases = get_today_purchases_count()
     
     await callback.message.edit_text(
         f"📊 *Статистика*\n\n"
         f"👥 Всего пользователей: *{user_count}*\n"
-        "🟢 Активных сегодня: 0\n"
-        "📨 Отправлено сообщений: 0\n"
-        "⭐ Всего покупок: 0",
+        f"🟢 Активных сегодня: 0\n"
+        f"📨 Отправлено сообщений: 0\n\n"
+        f"⭐ *Продажи Звёзд*\n"
+        f"📦 Всего продано: *{total_stars}*\n"
+        f"📈 За сегодня: *{today_stars}*\n"
+        f"🛒 Покупок сегодня: *{today_purchases}*",
         parse_mode="Markdown"
     )
     await callback.answer()
+
 
 @router.callback_query(lambda c: c.data == "admin_users")
 async def admin_users(callback: types.CallbackQuery):
@@ -87,13 +103,9 @@ async def admin_users(callback: types.CallbackQuery):
         for i, user in enumerate(users[:20], 1):
             user_id, username, first_name, last_name, joined_at, last_active = user
             
-            # Имя
             name = first_name or "Без имени"
-            
-            # Username
             username_str = f"@{username}" if username else "❌ Нет username"
             
-            # Активность
             if last_active:
                 days = (datetime.now() - datetime.strptime(last_active, "%Y-%m-%d %H:%M:%S")).days
                 if days == 0:
@@ -134,6 +146,7 @@ async def admin_users(callback: types.CallbackQuery):
     
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
+
 
 @router.callback_query(lambda c: c.data == "admin_cleanup")
 async def admin_cleanup(callback: types.CallbackQuery):

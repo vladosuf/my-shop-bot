@@ -4,11 +4,13 @@ import os
 DB_PATH = "users.db"
 
 def init_db():
-    """Создаёт базу данных и таблицу пользователей"""
+    """Создаёт базу данных и таблицы пользователей и покупок"""
     print("🔧 ВХОД В init_db()!")
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
+        
+        # Таблица пользователей
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
@@ -19,9 +21,20 @@ def init_db():
                 last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        
+        # Таблица покупок
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                stars_amount INTEGER,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         conn.commit()
         conn.close()
-        print("✅ Таблица users создана/проверена")
+        print("✅ Таблицы users и purchases созданы/проверены")
         return True
     except Exception as e:
         print(f"❌ Ошибка при инициализации БД: {e}")
@@ -143,3 +156,76 @@ def reset_db():
     except Exception as e:
         print(f"❌ Ошибка при пересоздании БД: {e}")
         return False
+
+def add_purchase(user_id, stars_amount):
+    """Добавляет запись о покупке в базу данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Создаём таблицу покупок, если её нет
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                stars_amount INTEGER,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("""
+            INSERT INTO purchases (user_id, stars_amount)
+            VALUES (?, ?)
+        """, (user_id, stars_amount))
+        conn.commit()
+        conn.close()
+        print(f"✅ Покупка: {user_id} купил {stars_amount} Звёзд")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при добавлении покупки: {e}")
+        return False
+
+def get_total_stars_sold():
+    """Возвращает общее количество проданных Звёзд"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT SUM(stars_amount) FROM purchases")
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте Звёзд: {e}")
+        return 0
+
+def get_today_stars_sold():
+    """Возвращает количество Звёзд, проданных сегодня"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT SUM(stars_amount) FROM purchases 
+            WHERE DATE(purchase_date) = DATE('now')
+        """)
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте Звёзд за сегодня: {e}")
+        return 0
+
+def get_today_purchases_count():
+    """Возвращает количество покупок сегодня"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM purchases 
+            WHERE DATE(purchase_date) = DATE('now')
+        """)
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте покупок за сегодня: {e}")
+        return 0
