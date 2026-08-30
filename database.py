@@ -44,17 +44,17 @@ def add_user(user_id, username=None, first_name=None, last_name=None):
         print(f"❌ Ошибка при добавлении пользователя: {e}")
         return False
 
-def get_all_users_with_details():
-    """Возвращает список всех пользователей с их данными и активностью"""
+def get_all_users():
+    """Возвращает список всех user_id"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, first_name, last_name, joined_at, last_active FROM users ORDER BY last_active DESC")
-        users = cursor.fetchall()
+        cursor.execute("SELECT user_id FROM users")
+        users = [row[0] for row in cursor.fetchall()]
         conn.close()
         return users
     except Exception as e:
-        print(f"❌ Ошибка при получении данных пользователей: {e}")
+        print(f"❌ Ошибка при получении пользователей: {e}")
         return []
 
 def get_user_count():
@@ -70,25 +70,12 @@ def get_user_count():
         print(f"❌ Ошибка при подсчёте пользователей: {e}")
         return 0
 
-def reset_db():
-    """Удаляет старую базу данных и создаёт новую"""
-    try:
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
-            print(f"🗑️ Старая база {DB_PATH} удалена!")
-        init_db()
-        print("✅ База данных пересоздана!")
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка при пересоздании БД: {e}")
-        return False
-
 def get_all_users_with_details():
-    """Возвращает список всех пользователей с их данными"""
+    """Возвращает список всех пользователей с их данными и активностью"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, first_name, last_name, joined_at FROM users")
+        cursor.execute("SELECT user_id, username, first_name, last_name, joined_at, last_active FROM users ORDER BY last_active DESC")
         users = cursor.fetchall()
         conn.close()
         return users
@@ -143,3 +130,16 @@ def get_inactive_users(days=30):
     except Exception as e:
         print(f"❌ Ошибка при получении неактивных пользователей: {e}")
         return []
+
+def reset_db():
+    """Удаляет старую базу данных и создаёт новую"""
+    try:
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print(f"🗑️ Старая база {DB_PATH} удалена!")
+        init_db()
+        print("✅ База данных пересоздана!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при пересоздании БД: {e}")
+        return False
