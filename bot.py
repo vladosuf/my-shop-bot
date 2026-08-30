@@ -8,6 +8,7 @@ from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
+from database import init_db, add_user, get_all_users, get_user_count
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -35,6 +36,14 @@ async def set_main_menu():
 @dp.message(Command("start"))
 async def start_command(message: Message):
     logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
+    
+    # Сохраняем пользователя в базу данных
+    add_user(
+        message.from_user.id,
+        message.from_user.username,
+        message.from_user.first_name,
+        message.from_user.last_name
+    )
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -645,6 +654,10 @@ async def show_info(callback: types.CallbackQuery):
 # ============================================
 async def main():
     try:
+        # Инициализируем базу данных
+        init_db()
+        logger.info("✅ База данных инициализирована!")
+        
         await set_main_menu()
         logger.info("✅ Кнопка Меню установлена!")
         logger.info("🚀 Бот запущен и готов к работе!")

@@ -18,6 +18,7 @@ def init_db():
     """)
     conn.commit()
     conn.close()
+    print("✅ База данных инициализирована!")
 
 def add_user(user_id, username=None, first_name=None, last_name=None):
     """Добавляет пользователя в базу данных"""
