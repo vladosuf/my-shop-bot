@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from database import init_db, add_user, get_all_users, get_user_count
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, LabeledPrice, PreCheckoutQuery, BotCommand
@@ -8,7 +9,6 @@ from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
-from database import init_db, add_user, get_all_users, get_user_count
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -62,14 +62,15 @@ async def start_command(message: Message):
             InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
         ]
     ])
-    
+
     await message.answer(
         "🚀 Привет!\n\n"
-        "С помощью этого бота можно купить ⭐Telegram Звёзды.\n"
+        "С помощью этого бота можно купить:\n"
+        "⭐️ Telegram Звёзды и 🌠 Премиум\n"
+        "По очень низкой цене\n\n"
         "Выбери действие ниже:",
         reply_markup=keyboard
     )
-
 
 @dp.message(Command("help"))
 async def help_command(message: Message):

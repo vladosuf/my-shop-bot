@@ -6,31 +6,20 @@ DB_PATH = "users.db"
 def init_db():
     """Создаёт базу данных и таблицу пользователей"""
     try:
-        print("🔧 Запуск init_db()...")
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Проверяем, существует ли таблица
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
-        table_exists = cursor.fetchone()
-        
-        if not table_exists:
-            print("📦 Создаём таблицу users...")
-            cursor.execute("""
-                CREATE TABLE users (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    first_name TEXT,
-                    last_name TEXT,
-                    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            conn.commit()
-            print("✅ Таблица users создана!")
-        else:
-            print("✅ Таблица users уже существует")
-        
+        cursor.execute("""
+            CREATE TABLE users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
         conn.close()
+        print("✅ Таблица users создана/проверена")
         return True
     except Exception as e:
         print(f"❌ Ошибка при инициализации БД: {e}")
@@ -79,15 +68,3 @@ def get_user_count():
         print(f"❌ Ошибка при подсчёте пользователей: {e}")
         return 0
 
-def get_users_with_username():
-    """Возвращает всех пользователей с username для статистики"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT user_id, username, first_name, joined_at FROM users")
-        users = cursor.fetchall()
-        conn.close()
-        return users
-    except Exception as e:
-        print(f"❌ Ошибка при получении данных пользователей: {e}")
-        return []
