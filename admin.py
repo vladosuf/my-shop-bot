@@ -253,7 +253,7 @@ async def admin_info(callback: types.CallbackQuery):
 
 
 # ============================================
-# ОБРАБОТЧИК РАССЫЛКИ (С БАЗОЙ ДАННЫХ)
+# ОБРАБОТЧИК РАССЫЛКИ
 # ============================================
 @router.message(lambda msg: msg.text and not msg.text.startswith("/") and msg.from_user.id in ADMIN_IDS)
 async def handle_mailing_message(message: types.Message):
