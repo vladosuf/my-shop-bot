@@ -2,15 +2,15 @@ import asyncio
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
-from logger import logger
 from database import get_all_users, get_user_count
+from logger import logger
 
 router = Router()
 
-# Твой Telegram ID (найди через @userinfobot)
-ADMIN_IDS = [1238597483]  # Замени на свой ID!
+# ТВОЙ TELEGRAM ID (замени на свой!)
+ADMIN_IDS = [1238597483]  # ← ВСТАВЬ СВОЙ ID СЮДА!
 
-# Временное хранилище для сообщений рассылки
+# Временное хранилище для рассылки
 mailing_data = {}
 
 
@@ -47,27 +47,27 @@ async def admin_panel(message: Message):
 
 @router.callback_query(lambda c: c.data == "admin_stats")
 async def admin_stats(callback: types.CallbackQuery):
-    """Показывает статистику"""
+    """Статистика"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
     user_count = get_user_count()
     
-    stats = (
-        "📊 *Статистика*\n\n"
+    await callback.message.edit_text(
+        f"📊 *Статистика*\n\n"
         f"👥 Всего пользователей: *{user_count}*\n"
         "🟢 Активных сегодня: 0\n"
         "📨 Отправлено сообщений: 0\n"
-        "⭐ Всего покупок: 0"
+        "⭐ Всего покупок: 0",
+        parse_mode="Markdown"
     )
-    await callback.message.edit_text(stats, parse_mode="Markdown")
     await callback.answer()
 
 
 @router.callback_query(lambda c: c.data == "admin_users")
 async def admin_users(callback: types.CallbackQuery):
-    """Управление пользователями"""
+    """Пользователи"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
@@ -75,17 +75,13 @@ async def admin_users(callback: types.CallbackQuery):
     users = get_all_users()
     user_count = len(users)
     
-    text = (
-        "👥 *Управление пользователями*\n\n"
-        f"👥 Всего пользователей: *{user_count}*\n"
-        f"🆔 ID первых 10 пользователей:\n"
-    )
+    text = f"👥 *Пользователи*\n\n👥 Всего: *{user_count}*\n\n"
     
-    for i, user_id in enumerate(users[:10], 1):
+    for i, user_id in enumerate(users[:20], 1):
         text += f"{i}. `{user_id}`\n"
     
-    if user_count > 10:
-        text += f"\n...и ещё {user_count - 10} пользователей"
+    if user_count > 20:
+        text += f"\n...и ещё {user_count - 20} пользователей"
     
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -104,7 +100,7 @@ async def admin_users(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "admin_mailing")
 async def admin_mailing(callback: types.CallbackQuery):
-    """Запуск рассылки"""
+    """Рассылка"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
@@ -121,12 +117,6 @@ async def admin_mailing(callback: types.CallbackQuery):
             ],
             [
                 types.InlineKeyboardButton(
-                    text="📊 Статистика пользователей",
-                    callback_data="mailing_stats"
-                ),
-            ],
-            [
-                types.InlineKeyboardButton(
                     text="🔙 Назад",
                     callback_data="admin_panel"
                 ),
@@ -134,15 +124,10 @@ async def admin_mailing(callback: types.CallbackQuery):
         ]
     )
     
-    text = (
-        "📨 *Рассылка*\n\n"
-        f"👥 Всего пользователей: *{user_count}*\n\n"
-        "Чтобы начать рассылку, нажми кнопку ниже\n"
-        "и отправь сообщение для рассылки."
-    )
-    
     await callback.message.edit_text(
-        text,
+        f"📨 *Рассылка*\n\n"
+        f"👥 Всего пользователей: *{user_count}*\n\n"
+        "Чтобы начать рассылку, нажми кнопку ниже.",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
@@ -169,56 +154,12 @@ async def mailing_start(callback: types.CallbackQuery):
     
     await callback.message.edit_text(
         "📨 *Отправь сообщение для рассылки*\n\n"
-        "Напиши текст, который будет отправлен всем пользователям.\n"
-        "Это может быть текст, фото, видео или ссылка.\n\n"
-        "⚠️ *Важно:* Отправь именно то сообщение,\n"
-        "которое хочешь разослать.",
+        "Напиши текст, который будет отправлен всем пользователям.",
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
     
     mailing_data[callback.from_user.id] = {"waiting": True}
-    await callback.answer()
-
-
-@router.callback_query(lambda c: c.data == "mailing_stats")
-async def mailing_stats(callback: types.CallbackQuery):
-    """Статистика пользователей"""
-    if callback.from_user.id not in ADMIN_IDS:
-        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
-        return
-    
-    users = get_all_users()
-    user_count = len(users)
-    
-    text = (
-        "📊 *Статистика пользователей*\n\n"
-        f"👥 Всего пользователей: *{user_count}*\n"
-        f"🆔 ID первых 10 пользователей:\n"
-    )
-    
-    for i, user_id in enumerate(users[:10], 1):
-        text += f"{i}. `{user_id}`\n"
-    
-    if user_count > 10:
-        text += f"\n...и ещё {user_count - 10} пользователей"
-    
-    keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(
-                    text="🔙 Назад",
-                    callback_data="admin_mailing"
-                ),
-            ]
-        ]
-    )
-    
-    await callback.message.edit_text(
-        text,
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
     await callback.answer()
 
 
@@ -229,10 +170,6 @@ async def admin_settings(callback: types.CallbackQuery):
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    text = (
-        "⚙️ *Настройки*\n\n"
-        "Пока что настройки не добавлены."
-    )
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -243,7 +180,13 @@ async def admin_settings(callback: types.CallbackQuery):
             ]
         ]
     )
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    await callback.message.edit_text(
+        "⚙️ *Настройки*\n\n"
+        "Пока что настройки не добавлены.",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
     await callback.answer()
 
 
@@ -286,13 +229,6 @@ async def admin_info(callback: types.CallbackQuery):
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    text = (
-        "ℹ️ *О боте*\n\n"
-        "Бот для продажи Telegram Stars\n"
-        "Версия: 2.0.0\n"
-        "Автор: Ты 🚀\n\n"
-        "Бот работает на сервере 24/7"
-    )
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -303,12 +239,21 @@ async def admin_info(callback: types.CallbackQuery):
             ]
         ]
     )
-    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    
+    await callback.message.edit_text(
+        "ℹ️ *О боте*\n\n"
+        "Бот для продажи Telegram Stars\n"
+        "Версия: 2.0.0\n"
+        "Автор: Ты 🚀\n\n"
+        "Бот работает на сервере 24/7",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
     await callback.answer()
 
 
 # ============================================
-# ОБРАБОТЧИК РАССЫЛКИ (РЕАЛЬНЫЙ)
+# ОБРАБОТЧИК РАССЫЛКИ (С БАЗОЙ ДАННЫХ)
 # ============================================
 @router.message(lambda msg: msg.text and not msg.text.startswith("/") and msg.from_user.id in ADMIN_IDS)
 async def handle_mailing_message(message: types.Message):
