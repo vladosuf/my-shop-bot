@@ -643,7 +643,8 @@ if __name__ == "__main__":
 @dp.message()
 async def handle_all_messages(message: Message):
     """Обновляет активность пользователя, но пропускает команды"""
-    # Пропускаем команды (начинаются с /)
+    
+    # Если сообщение начинается с / — это команда, пропускаем
     if message.text and message.text.startswith("/"):
         return
     
