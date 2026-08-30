@@ -80,36 +80,40 @@ async def admin_users(callback: types.CallbackQuery):
     user_count = len(users)
     
     text = f"👥 *Пользователи*\n\n👥 Всего: *{user_count}*\n\n"
-    text += "┌────────────┬────────────┬────────────┐\n"
-    text += "│ ID         │ Имя        │ Активность │\n"
-    text += "├────────────┼────────────┼────────────┤\n"
     
-    for user in users[:20]:
-        user_id, username, first_name, last_name, joined_at, last_active = user
-        
-        # Формируем имя с username
-        name = first_name or "Без имени"
-        if username:
-            name = f"{name} (@{username})"
-        
-        # Определяем активность
-        if last_active:
-            days = (datetime.now() - datetime.strptime(last_active, "%Y-%m-%d %H:%M:%S")).days
-            if days == 0:
-                status = "🟢 Сегодня"
-            elif days == 1:
-                status = "🟡 Вчера"
-            elif days < 7:
-                status = f"🟠 {days}д"
+    if user_count == 0:
+        text += "Пока нет пользователей."
+    else:
+        for i, user in enumerate(users[:20], 1):
+            user_id, username, first_name, last_name, joined_at, last_active = user
+            
+            # Имя
+            name = first_name or "Без имени"
+            
+            # Username
+            username_str = f"@{username}" if username else "❌ Нет username"
+            
+            # Активность
+            if last_active:
+                days = (datetime.now() - datetime.strptime(last_active, "%Y-%m-%d %H:%M:%S")).days
+                if days == 0:
+                    status = "🟢 Сегодня"
+                elif days == 1:
+                    status = "🟡 Вчера"
+                elif days < 7:
+                    status = f"🟠 {days} дня назад"
+                else:
+                    status = f"🔴 {days} дней назад"
             else:
-                status = f"🔴 {days}д"
-        else:
-            status = "⚪ Неизвестно"
+                status = "⚪ Неизвестно"
+            
+            text += f"{i}. *{name}*\n"
+            text += f"   🆔 `{user_id}`\n"
+            text += f"   📛 {username_str}\n"
+            text += f"   ⏱ {status}\n\n"
         
-        text += f"│ {user_id} │ {name[:15]} │ {status} │\n"
-    
-    if user_count > 20:
-        text += f"\n...и ещё {user_count - 20} пользователей"
+        if user_count > 20:
+            text += f"...и ещё {user_count - 20} пользователей"
     
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
@@ -130,7 +134,6 @@ async def admin_users(callback: types.CallbackQuery):
     
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
-
 
 @router.callback_query(lambda c: c.data == "admin_cleanup")
 async def admin_cleanup(callback: types.CallbackQuery):
