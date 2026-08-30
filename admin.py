@@ -5,6 +5,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users
 from logger import logger
+from database import get_all_users, get_user_count, get_all_users_with_details, remove_user, get_inactive_users, update_user_activity
 
 router = Router()
 
@@ -21,6 +22,8 @@ async def admin_panel(message: Message):
     if message.from_user.id not in ADMIN_IDS:
         await message.answer("⛔ У тебя нет доступа к этой команде!")
         return
+
+    update_user_activity(message.from_user.id)
     
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[

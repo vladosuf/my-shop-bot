@@ -47,6 +47,8 @@ async def start_command(message: Message):
         message.from_user.last_name
     )
     
+    update_user_activity(message.from_user.id)
+
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
