@@ -54,7 +54,6 @@ async def start_command(message: Message):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-            InlineKeyboardButton(text="🎁 Подарить Премиум другу", callback_data="gift_premium"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
@@ -85,7 +84,6 @@ async def help_command(message: Message):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-            InlineKeyboardButton(text="🎁 Подарить Премиум другу", callback_data="gift_premium"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
@@ -161,7 +159,7 @@ async def show_products(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: КУПИТЬ ПРЕМИУМ (ОДИН СТОЛБЕЦ)
+# КНОПКА: КУПИТЬ ПРЕМИУМ
 # ============================================
 @dp.callback_query(F.data == "buy_premium")
 async def buy_premium(callback: types.CallbackQuery):
@@ -427,248 +425,6 @@ async def gift_buy(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ИСПРАВЛЕННАЯ)
-# ============================================
-@dp.callback_query(F.data == "gift_premium")
-async def gift_premium_start(callback: types.CallbackQuery):
-    """Начало процесса дарения Премиума"""
-    # Очищаем старые данные
-    user_gift_data.pop(callback.from_user.id, None)
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
-        ]
-    ])
-    
-    await callback.message.edit_text(
-        "🎁 *Подарок Премиума другу*\n\n"
-        "Чтобы подарить Telegram Премиум другу:\n\n"
-        "1️⃣ Укажи *Username* друга\n"
-        "   (убедись что ввёл правильно, при опечатке вернуть подарок не получится)\n\n"
-        "📝 Напиши в чат username друга (например: @ivan )",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
-
-
-@dp.message()
-async def gift_premium_username(message: Message):
-    """Обработка ввода username друга для подарка Премиума"""
-    
-    # ПРОПУСКАЕМ КОМАНДЫ (начинаются с /)
-    if message.text and message.text.startswith("/"):
-        return
-    
-    # Проверяем, что пользователь находится в процессе дарения Премиума
-    if message.from_user.id not in user_gift_data:
-        return
-    
-    # Проверяем, что это текстовое сообщение
-    if not message.text:
-        return
-    
-    username = message.text.strip()
-    
-    # Если пользователь уже выбрал срок — выходим
-    if user_gift_data[message.from_user.id].get("gift_type") == "premium" and "friend_username" in user_gift_data[message.from_user.id]:
-        return
-    
-    # Сохраняем username
-    user_gift_data[message.from_user.id] = {
-        "friend_username": username,
-        "gift_type": "premium",
-        "waiting_for": "premium_duration"
-    }
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="gift_premium_3"),
-        ],
-        [
-            InlineKeyboardButton(text="🌠 6 месяцев — 1450 ₽", callback_data="gift_premium_6"),
-        ],
-        [
-            InlineKeyboardButton(text="🌠 12 месяцев — 2600 ₽", callback_data="gift_premium_12"),
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_cancel"),
-        ]
-    ])
-    
-    await message.answer(
-        f"🎁 *Подарок Премиума для {username}*\n\n"
-        "Выбери срок подписки:",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-
-
-@dp.callback_query(F.data.startswith("gift_premium_"))
-async def gift_premium_process(callback: types.CallbackQuery):
-    """Обработка выбора срока для подарка Премиума"""
-    user_id = callback.from_user.id
-    
-    if user_id not in user_gift_data:
-        await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
-        await callback.answer()
-        return
-    
-    friend_username = user_gift_data[user_id]["friend_username"]
-    duration = callback.data.split("_")[2]
-    
-    prices = {
-        "3": 1070,
-        "6": 1450,
-        "12": 2600
-    }
-    
-    price_rub = prices.get(duration, 1070)
-    stars_amount = int(price_rub / 1.3)
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(
-                text=f"✅ Подарить {duration} месяца Премиум для {friend_username}",
-                callback_data=f"gift_premium_buy_{duration}_{friend_username}"
-            ),
-        ],
-        [
-            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_cancel"),
-        ]
-    ])
-    
-    await callback.message.edit_text(
-        f"🎁 *Подарок Премиума для {friend_username}*\n\n"
-        f"📅 Срок: *{duration} месяца*\n"
-        f"💰 Стоимость: *{price_rub} ₽*\n\n"
-        f"👇 Подтверди покупку:",
-        reply_markup=keyboard,
-        parse_mode="Markdown"
-    )
-    await callback.answer()
-
-
-@dp.callback_query(F.data.startswith("gift_premium_buy_"))
-async def gift_premium_buy(callback: types.CallbackQuery):
-    """Оформление покупки подарка Премиума"""
-    user_id = callback.from_user.id
-    
-    if user_id not in user_gift_data:
-        await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
-        await callback.answer()
-        return
-    
-    parts = callback.data.split("_")
-    duration = parts[3]
-    friend_username = parts[4]
-    
-    prices = {
-        "3": 1070,
-        "6": 1450,
-        "12": 2600
-    }
-    
-    price_rub = prices.get(duration, 1070)
-    stars_amount = int(price_rub / 1.3)
-    
-    await bot.send_invoice(
-        chat_id=callback.from_user.id,
-        title=f"🎁 Подарок Премиума для {friend_username}",
-        description=f"Ты даришь {duration} месяца Telegram Премиум пользователю {friend_username}",
-        payload=f"gift_premium_{user_id}_{friend_username}_{duration}",
-        provider_token="",
-        currency="XTR",
-        prices=[
-            LabeledPrice(label=f"{duration} месяца Премиум", amount=stars_amount)
-        ],
-        start_parameter="gift_premium",
-    )
-    
-    await callback.answer()
-    await callback.message.delete()
-
-
-# ============================================
-# ОБРАБОТКА УСПЕШНЫХ ПЛАТЕЖЕЙ
-# ============================================
-@dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
-async def successful_payment(message: Message):
-    payment = message.successful_payment
-    payload = payment.invoice_payload
-    
-    # Подарок Звёзд
-    if payload.startswith("gift_") and not payload.startswith("gift_premium_"):
-        parts = payload.split("_")
-        gift_from = int(parts[1])
-        friend_username = parts[2]
-        stars_amount = int(parts[3])
-        
-        logger.info(f"🎁 Подарок: {message.from_user.id} подарил {stars_amount} Звёзд пользователю {friend_username}")
-        user_gift_data.pop(message.from_user.id, None)
-        
-        await message.answer(
-            f"🎁 *Подарок отправлен!*\n\n"
-            f"⭐ Ты подарил *{stars_amount} Звёзд*\n"
-            f"👤 Пользователю: *{friend_username}*\n\n"
-            f"✅ Подарок успешно доставлен! 🚀",
-            parse_mode="Markdown"
-        )
-        return
-    
-    # Подарок Премиума
-    if payload.startswith("gift_premium_"):
-        parts = payload.split("_")
-        gift_from = int(parts[2])
-        friend_username = parts[3]
-        duration = parts[4]
-        
-        logger.info(f"🎁 Подарок Премиума: {message.from_user.id} подарил {duration} месяцев пользователю {friend_username}")
-        user_gift_data.pop(message.from_user.id, None)
-        
-        await message.answer(
-            f"🎁 *Подарок Премиума отправлен!*\n\n"
-            f"🌠 Ты подарил *{duration} месяца Премиума*\n"
-            f"👤 Пользователю: *{friend_username}*\n\n"
-            f"✅ Подарок успешно доставлен! 🚀",
-            parse_mode="Markdown"
-        )
-        return
-    
-    # Покупка Премиума для себя
-    if payload.startswith("premium_"):
-        parts = payload.split("_")
-        duration = parts[1]
-        
-        logger.info(f"🌠 Премиум: {message.from_user.id} купил {duration} месяца")
-        
-        await message.answer(
-            f"✅ *Премиум активирован!*\n\n"
-            f"🌠 Ты купил *{duration} месяца Премиума*\n"
-            f"📦 Подарок отправлен на твой аккаунт.\n\n"
-            f"Спасибо за покупку! 🚀",
-            parse_mode="Markdown"
-        )
-        return
-    
-    # Покупка Звёзд для себя
-    if payload.startswith("buy_"):
-        stars_amount = payload.split("_")[1]
-        logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Звёзд")
-        
-        add_purchase(message.from_user.id, int(stars_amount))
-        
-        await message.answer(
-            f"✅ Оплата прошла успешно!\n\n"
-            f"🚀 Ты купил {stars_amount} Звёзд.\n"
-            f"📦 Товар отправлен на твой баланс.\n\n"
-            f"Спасибо за покупку! 🚀"
-        )
-        return
-
-
-# ============================================
 # ОСТАЛЬНЫЕ КНОПКИ
 # ============================================
 @dp.callback_query(F.data == "gift_cancel")
@@ -682,7 +438,6 @@ async def gift_cancel(callback: types.CallbackQuery):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-            InlineKeyboardButton(text="🎁 Подарить Премиум другу", callback_data="gift_premium"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
@@ -828,6 +583,62 @@ async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
     await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
+@dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
+async def successful_payment(message: Message):
+    payment = message.successful_payment
+    payload = payment.invoice_payload
+    
+    # Подарок Звёзд
+    if payload.startswith("gift_"):
+        parts = payload.split("_")
+        gift_from = int(parts[1])
+        friend_username = parts[2]
+        stars_amount = int(parts[3])
+        
+        logger.info(f"🎁 Подарок: {message.from_user.id} подарил {stars_amount} Звёзд пользователю {friend_username}")
+        user_gift_data.pop(message.from_user.id, None)
+        
+        await message.answer(
+            f"🎁 *Подарок отправлен!*\n\n"
+            f"⭐ Ты подарил *{stars_amount} Звёзд*\n"
+            f"👤 Пользователю: *{friend_username}*\n\n"
+            f"✅ Подарок успешно доставлен! 🚀",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Покупка Премиума для себя
+    if payload.startswith("premium_"):
+        parts = payload.split("_")
+        duration = parts[1]
+        
+        logger.info(f"🌠 Премиум: {message.from_user.id} купил {duration} месяца")
+        
+        await message.answer(
+            f"✅ *Премиум активирован!*\n\n"
+            f"🌠 Ты купил *{duration} месяца Премиума*\n"
+            f"📦 Подарок отправлен на твой аккаунт.\n\n"
+            f"Спасибо за покупку! 🚀",
+            parse_mode="Markdown"
+        )
+        return
+    
+    # Покупка Звёзд для себя
+    if payload.startswith("buy_"):
+        stars_amount = payload.split("_")[1]
+        logger.info(f"💰 Покупка: {message.from_user.id} купил {stars_amount} Звёзд")
+        
+        add_purchase(message.from_user.id, int(stars_amount))
+        
+        await message.answer(
+            f"✅ Оплата прошла успешно!\n\n"
+            f"🚀 Ты купил {stars_amount} Звёзд.\n"
+            f"📦 Товар отправлен на твой баланс.\n\n"
+            f"Спасибо за покупку! 🚀"
+        )
+        return
+
+
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -837,7 +648,6 @@ async def back_to_menu(callback: types.CallbackQuery):
         ],
         [
             InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-            InlineKeyboardButton(text="🎁 Подарить Премиум другу", callback_data="gift_premium"),
         ],
         [
             InlineKeyboardButton(text="📢 Новости", callback_data="news"),
