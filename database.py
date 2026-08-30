@@ -5,6 +5,7 @@ DB_PATH = "users.db"
 
 def init_db():
     """Создаёт базу данных и таблицу пользователей"""
+    print("🔧 Запуск init_db()...")
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
@@ -13,6 +14,7 @@ def init_db():
     table_exists = cursor.fetchone()
     
     if not table_exists:
+        print("📦 Создаём таблицу users...")
         cursor.execute("""
             CREATE TABLE users (
                 user_id INTEGER PRIMARY KEY,
@@ -28,6 +30,7 @@ def init_db():
         print("✅ Таблица users уже существует")
     
     conn.close()
+    return True
 
 def add_user(user_id, username=None, first_name=None, last_name=None):
     """Добавляет пользователя в базу данных"""
@@ -57,12 +60,3 @@ def get_user_count():
     count = cursor.fetchone()[0]
     conn.close()
     return count
-
-def get_users_with_username():
-    """Возвращает всех пользователей с username для статистики"""
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT user_id, username, first_name, joined_at FROM users")
-    users = cursor.fetchall()
-    conn.close()
-    return users
