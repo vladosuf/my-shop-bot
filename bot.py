@@ -38,7 +38,6 @@ async def set_main_menu():
 async def start_command(message: Message):
     logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
     
-    # Сохраняем пользователя в базу данных
     add_user(
         message.from_user.id,
         message.from_user.username,
@@ -162,7 +161,7 @@ async def show_products(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: КУПИТЬ ПРЕМИУМ
+# КНОПКА: КУПИТЬ ПРЕМИУМ (ОДИН СТОЛБЕЦ)
 # ============================================
 @dp.callback_query(F.data == "buy_premium")
 async def buy_premium(callback: types.CallbackQuery):
@@ -170,6 +169,8 @@ async def buy_premium(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="premium_3"),
+        ],
+        [
             InlineKeyboardButton(text="🌠 6 месяцев — 1450 ₽", callback_data="premium_6"),
         ],
         [
@@ -205,8 +206,6 @@ async def process_premium_purchase(callback: types.CallbackQuery):
     }
     
     price_rub = prices.get(duration, 1070)
-    
-    # Стоимость в Stars (курс: 1 Star = 1.3 ₽)
     stars_amount = int(price_rub / 1.3)
     
     await bot.send_invoice(
@@ -428,7 +427,7 @@ async def gift_buy(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ
+# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ОДИН СТОЛБЕЦ)
 # ============================================
 @dp.callback_query(F.data == "gift_premium")
 async def gift_premium_start(callback: types.CallbackQuery):
@@ -451,12 +450,11 @@ async def gift_premium_start(callback: types.CallbackQuery):
     await callback.answer()
 
 
-@dp.message(lambda msg: msg.text and msg.text.startswith("@") and msg.from_user.id in user_gift_data)
+@dp.message(lambda msg: msg.text and msg.text.startswith("@"))
 async def gift_premium_username(message: Message):
     """Обработка ввода username друга для подарка Премиума"""
     username = message.text.strip()
     
-    # Сохраняем данные
     user_gift_data[message.from_user.id] = {
         "friend_username": username,
         "gift_type": "premium"
@@ -465,6 +463,8 @@ async def gift_premium_username(message: Message):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="gift_premium_3"),
+        ],
+        [
             InlineKeyboardButton(text="🌠 6 месяцев — 1450 ₽", callback_data="gift_premium_6"),
         ],
         [
