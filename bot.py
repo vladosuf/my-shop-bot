@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user
+from aiogram.enums import ContentType
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -644,8 +645,13 @@ if __name__ == "__main__":
 async def handle_all_messages(message: Message):
     """Обновляет активность пользователя, но пропускает команды"""
     
-    # Если сообщение начинается с / — это команда, пропускаем
+    # Проверяем, является ли сообщение командой
+    # Если да — пропускаем
     if message.text and message.text.startswith("/"):
+        return
+    
+    # Также пропускаем callback-запросы (они обрабатываются отдельно)
+    if message.content_type != ContentType.TEXT:
         return
     
     try:
