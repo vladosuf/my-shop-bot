@@ -456,6 +456,11 @@ async def gift_premium_start(callback: types.CallbackQuery):
 @dp.message()
 async def gift_premium_username(message: Message):
     """Обработка ввода username друга для подарка Премиума"""
+    
+    # ПРОПУСКАЕМ КОМАНДЫ (начинаются с /)
+    if message.text and message.text.startswith("/"):
+        return
+    
     # Проверяем, что пользователь находится в процессе дарения Премиума
     if message.from_user.id not in user_gift_data:
         return
