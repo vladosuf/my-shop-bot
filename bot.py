@@ -659,3 +659,7 @@ async def handle_all_messages(message: Message):
         update_user_activity(message.from_user.id)
     except Exception as e:
         logger.error(f"❌ Ошибка при обновлении активности: {e}")
+
+@dp.message(Command("admin"))
+async def test_admin(message: Message):
+    await message.answer("✅ Команда /admin получена!")
