@@ -2,14 +2,13 @@ import asyncio
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
-from bot import bot
 from database import get_all_users, get_user_count
 from logger import logger
 
 router = Router()
 
 # Твой Telegram ID (найди через @userinfobot)
-ADMIN_IDS = [1238597483]  # Замени на свой ID!
+ADMIN_IDS = [486661245]  # Замени на свой ID!
 
 # Временное хранилище для сообщений рассылки
 mailing_data = {}
@@ -224,7 +223,9 @@ async def mailing_stats(callback: types.CallbackQuery):
     await callback.answer()
 
 
-# Обработчик сообщений для рассылки
+# ============================================
+# ОБРАБОТЧИК РАССЫЛКИ
+# ============================================
 @router.message(lambda msg: msg.text and not msg.text.startswith("/") and msg.from_user.id in ADMIN_IDS)
 async def handle_mailing_message(message: types.Message):
     """Обрабатывает сообщение для рассылки"""
@@ -251,8 +252,8 @@ async def handle_mailing_message(message: types.Message):
     # Отправляем сообщение каждому пользователю
     for i, user_id in enumerate(users):
         try:
-            # Копируем сообщение админа каждому пользователю
-            await bot.copy_message(
+            # Используем message.bot вместо прямого импорта bot
+            await message.bot.copy_message(
                 chat_id=user_id,
                 from_chat_id=message.chat.id,
                 message_id=message.message_id
