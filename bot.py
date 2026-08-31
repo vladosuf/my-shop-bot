@@ -11,6 +11,7 @@ from admin import router as admin_router
 from logger import logger
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase, add_message
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -703,3 +704,29 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+# ============================================
+# ОБРАБОТКА ВСЕХ СООБЩЕНИЙ
+# ============================================
+@dp.message()
+async def handle_all_messages(message: Message):
+    """Сохраняет все сообщения и обновляет активность"""
+    try:
+        # Пропускаем команды
+        if message.text and message.text.startswith("/"):
+            return
+        
+        # Сохраняем сообщение в базу
+        if message.text:
+            add_message(message.from_user.id, message.text)
+        
+        # Обновляем активность пользователя
+        add_user(
+            message.from_user.id,
+            message.from_user.username,
+            message.from_user.first_name,
+            message.from_user.last_name
+        )
+        update_user_activity(message.from_user.id)
+    except Exception as e:
+        logger.error(f"❌ Ошибка при обработке сообщения: {e}")

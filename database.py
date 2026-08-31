@@ -42,6 +42,16 @@ def init_db():
             )
         """)
         
+        # Таблица сообщений
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                message_text TEXT,
+                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         conn.commit()
         conn.close()
         print("✅ Таблицы созданы/проверены")
@@ -296,3 +306,70 @@ def get_today_premium_sold():
     except Exception as e:
         print(f"❌ Ошибка при подсчёте Премиумов за сегодня: {e}")
         return 0
+
+def get_active_users_today():
+    """Возвращает количество пользователей, активных сегодня"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(DISTINCT user_id) FROM users 
+            WHERE DATE(last_active) = DATE('now')
+        """)
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте активных пользователей: {e}")
+        return 0
+
+def get_total_messages():
+    """Возвращает общее количество сообщений, отправленных боту"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Создаём таблицу сообщений, если её нет
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                message_text TEXT,
+                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("SELECT COUNT(*) FROM messages")
+        count = cursor.fetchone()[0]
+        conn.close()
+        return count or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте сообщений: {e}")
+        return 0
+
+def add_message(user_id, text):
+    """Добавляет сообщение в базу данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Создаём таблицу сообщений, если её нет
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                message_text TEXT,
+                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("""
+            INSERT INTO messages (user_id, message_text)
+            VALUES (?, ?)
+        """, (user_id, text[:500]))  # Обрезаем длинные сообщения
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при добавлении сообщения: {e}")
+        return False
