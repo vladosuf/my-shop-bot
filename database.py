@@ -309,7 +309,7 @@ def add_message(user_id, text):
         cursor.execute("""
             INSERT INTO messages (user_id, message_text)
             VALUES (?, ?)
-        """, (user_id, text[:500]))  # Обрезаем длинные сообщения
+        """, (user_id, text[:500]))
         conn.commit()
         conn.close()
         return True
@@ -317,50 +317,22 @@ def add_message(user_id, text):
         print(f"❌ Ошибка при добавлении сообщения: {e}")
         return False
 
-def get_recent_messages(limit=20):
-    """Возвращает последние сообщения с правильным форматом времени"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
-            SELECT user_id, message_text, 
-                   strftime('%d.%m.%Y %H:%M', message_date) as formatted_date
-            FROM messages 
-            ORDER BY message_date DESC 
-            LIMIT ?
-        """, (limit,))
-        messages = cursor.fetchall()
-        conn.close()
-        return messages
-    except Exception as e:
-        print(f"❌ Ошибка при получении сообщений: {e}")
-        return []
-
-def reset_db():
-    """Удаляет старую базу данных и создаёт новую"""
-    try:
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
-            print(f"🗑️ Старая база {DB_PATH} удалена!")
-        init_db()
-        print("✅ База данных пересоздана!")
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка при пересоздании БД: {e}")
-        return False
-
 def get_messages_by_user(limit=20):
-    """Возвращает сообщения, сгруппированные по пользователям"""
+    """Возвращает сообщения, сгруппированные по пользователям с username"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT user_id, 
-                   GROUP_CONCAT(message_text, ' | ') as messages,
-                   COUNT(*) as count,
-                   MAX(message_date) as last_date
-            FROM messages 
-            GROUP BY user_id 
+            SELECT 
+                m.user_id,
+                u.username,
+                u.first_name,
+                GROUP_CONCAT(m.message_text, ' | ') as messages,
+                COUNT(m.id) as count,
+                MAX(m.message_date) as last_date
+            FROM messages m
+            LEFT JOIN users u ON m.user_id = u.user_id
+            GROUP BY m.user_id
             ORDER BY last_date DESC 
             LIMIT ?
         """, (limit,))
@@ -369,6 +341,26 @@ def get_messages_by_user(limit=20):
         return messages
     except Exception as e:
         print(f"❌ Ошибка при получении сообщений по пользователям: {e}")
+        return []
+
+def get_user_messages(user_id, limit=20):
+    """Возвращает сообщения конкретного пользователя с правильным временем"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT message_text, 
+                   datetime(message_date, '+7 hours') as local_time
+            FROM messages 
+            WHERE user_id = ?
+            ORDER BY message_date DESC 
+            LIMIT ?
+        """, (user_id, limit))
+        messages = cursor.fetchall()
+        conn.close()
+        return messages
+    except Exception as e:
+        print(f"❌ Ошибка при получении сообщений пользователя: {e}")
         return []
 
 def clear_all_messages():
@@ -383,4 +375,17 @@ def clear_all_messages():
         return True
     except Exception as e:
         print(f"❌ Ошибка при удалении сообщений: {e}")
+        return False
+
+def reset_db():
+    """Удаляет старую базу данных и создаёт новую"""
+    try:
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print(f"🗑️ Старая база {DB_PATH} удалена!")
+        init_db()
+        print("✅ База данных пересоздана!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при пересоздании БД: {e}")
         return False

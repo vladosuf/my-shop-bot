@@ -1,6 +1,6 @@
 import asyncio
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -18,27 +18,12 @@ from database import (
     get_today_premium_sold,
     get_active_users_today,
     get_total_messages,
-    get_recent_messages
+    get_messages_by_user,
+    clear_all_messages,
+    get_user_messages,
+    DB_PATH
 )
 from logger import logger
-from database import (
-    get_all_users, 
-    get_user_count, 
-    get_all_users_with_details, 
-    remove_user, 
-    get_inactive_users, 
-    update_user_activity,
-    get_total_stars_sold,
-    get_today_stars_sold,
-    get_today_purchases_count,
-    get_total_premium_sold,
-    get_today_premium_sold,
-    get_active_users_today,
-    get_total_messages,
-    get_messages_by_user,
-    clear_all_messages
-)
-from database import DB_PATH
 
 router = Router()
 
@@ -56,7 +41,6 @@ async def admin_panel(message: Message):
         await message.answer("⛔ У тебя нет доступа к этой команде!")
         return
     
-    # Обновляем активность админа
     update_user_activity(message.from_user.id)
     
     keyboard = types.InlineKeyboardMarkup(
@@ -86,7 +70,7 @@ async def admin_panel(message: Message):
 
 @router.callback_query(lambda c: c.data == "admin_stats")
 async def admin_stats(callback: types.CallbackQuery):
-    """Статистика с информацией о продажах"""
+    """Статистика"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
@@ -119,7 +103,7 @@ async def admin_stats(callback: types.CallbackQuery):
 
 @router.callback_query(lambda c: c.data == "admin_users")
 async def admin_users(callback: types.CallbackQuery):
-    """Пользователи с подробной информацией и активностью"""
+    """Пользователи"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
@@ -365,7 +349,7 @@ async def admin_info(callback: types.CallbackQuery):
 
 
 # ============================================
-# ПРОСМОТР СООБЩЕНИЙ
+# СООБЩЕНИЯ
 # ============================================
 @router.callback_query(lambda c: c.data == "admin_messages")
 async def admin_messages(callback: types.CallbackQuery):
@@ -390,29 +374,48 @@ async def admin_messages(callback: types.CallbackQuery):
     text = f"📨 *Сообщения по пользователям*\n\n"
     text += f"📊 Всего сообщений: *{total_messages}*\n"
     text += f"👥 Пользователей: *{len(messages)}*\n\n"
-    text += "┌────────────┬──────────┬────────────┐\n"
-    text += "│ 👤 ID      │ 📝 Всего │ 🕐 Последнее│\n"
-    text += "├────────────┼──────────┼────────────┤\n"
+    text += "┌─────────────────┬──────────┬────────────┐\n"
+    text += "│ 👤 Пользователь │ 📝 Всего │ 🕐 Последнее│\n"
+    text += "├─────────────────┼──────────┼────────────┤\n"
     
-    for user_id, messages_text, count, last_date in messages:
-        # Форматируем дату
-        last_date_formatted = last_date[:16] if last_date else "Неизвестно"
-        # Обрезаем ID
-        user_id_str = str(user_id)
-        if len(user_id_str) > 10:
-            user_id_str = user_id_str[:10] + "…"
+    for user_id, username, first_name, messages_text, count, last_date in messages:
+        if username:
+            display_name = f"@{username}"
+        elif first_name:
+            display_name = first_name[:15]
+        else:
+            display_name = str(user_id)
         
-        text += f"│ `{user_id_str}` │ {count:^8} │ {last_date_formatted} │\n"
+        if last_date:
+            try:
+                dt = datetime.strptime(last_date, "%Y-%m-%d %H:%M:%S")
+                dt_nsk = dt + timedelta(hours=7)
+                last_date_formatted = dt_nsk.strftime("%d.%m %H:%M")
+            except:
+                last_date_formatted = last_date[:16] if last_date else "Неизвестно"
+        else:
+            last_date_formatted = "Неизвестно"
+        
+        if len(display_name) > 15:
+            display_name = display_name[:13] + "…"
+        
+        text += f"│ {display_name:^15} │ {count:^8} │ {last_date_formatted:^10} │\n"
     
-    text += "└────────────┴──────────┴────────────┘\n\n"
+    text += "└─────────────────┴──────────┴────────────┘\n\n"
     text += "📌 Нажми на пользователя, чтобы увидеть его сообщения"
     
-    # Создаём кнопки для каждого пользователя
     keyboard_buttons = []
-    for user_id, messages_text, count, last_date in messages[:10]:
+    for user_id, username, first_name, messages_text, count, last_date in messages[:10]:
+        if username:
+            button_text = f"👤 @{username} ({count})"
+        elif first_name:
+            button_text = f"👤 {first_name[:15]} ({count})"
+        else:
+            button_text = f"👤 {user_id} ({count})"
+        
         keyboard_buttons.append([
             types.InlineKeyboardButton(
-                text=f"👤 {user_id} ({count} сообщ.)",
+                text=button_text,
                 callback_data=f"msg_user_{user_id}"
             )
         ])
@@ -445,29 +448,37 @@ async def admin_messages_user(callback: types.CallbackQuery):
     
     user_id = int(callback.data.split("_")[2])
     
-    # Получаем сообщения пользователя
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT message_text, message_date 
-            FROM messages 
+            SELECT username, first_name 
+            FROM users 
             WHERE user_id = ?
-            ORDER BY message_date DESC 
-            LIMIT 20
         """, (user_id,))
-        messages = cursor.fetchall()
+        user_data = cursor.fetchone()
         conn.close()
-    except Exception as e:
-        print(f"❌ Ошибка при получении сообщений пользователя {user_id}: {e}")
-        await callback.answer("❌ Ошибка при получении сообщений", show_alert=True)
-        return
+    except:
+        user_data = None
+    
+    if user_data:
+        username, first_name = user_data
+        if username:
+            display_name = f"@{username}"
+        elif first_name:
+            display_name = first_name
+        else:
+            display_name = str(user_id)
+    else:
+        display_name = str(user_id)
+    
+    messages = get_user_messages(user_id, 20)
     
     if not messages:
         await callback.answer("❌ Нет сообщений от этого пользователя", show_alert=True)
         return
     
-    text = f"👤 *Сообщения пользователя `{user_id}`*\n\n"
+    text = f"👤 *Сообщения пользователя {display_name}*\n\n"
     
     for msg_text, msg_date in messages[:15]:
         if len(msg_text) > 50:
@@ -493,6 +504,7 @@ async def admin_messages_user(callback: types.CallbackQuery):
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
+
 @router.callback_query(lambda c: c.data == "admin_clear_messages")
 async def admin_clear_messages(callback: types.CallbackQuery):
     """Очищает все сообщения"""
@@ -500,7 +512,6 @@ async def admin_clear_messages(callback: types.CallbackQuery):
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    # Подтверждение
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -546,6 +557,7 @@ async def admin_clear_confirm(callback: types.CallbackQuery):
         )
     
     await callback.answer()
+
 
 # ============================================
 # ОБРАБОТЧИК РАССЫЛКИ
