@@ -707,17 +707,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-@dp.message()
-async def save_all_messages(message: Message):
-    """Сохраняет все сообщения в базу"""
-    # Пропускаем команды (начинаются с /)
-    if message.text and message.text.startswith("/"):
-        return
-    
-    try:
-        # Сохраняем сообщение
-        if message.text:
-            add_message(message.from_user.id, message.text)
-    except Exception as e:
-        logger.error(f"❌ Ошибка при сохранении сообщения: {e}")
