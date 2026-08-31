@@ -370,13 +370,11 @@ async def admin_messages(callback: types.CallbackQuery):
     for msg in messages:
         user_id, text_msg, date = msg
         # Обрезаем длинные сообщения
-        if len(text_msg) > 100:
-            text_msg = text_msg[:100] + "..."
-        # Форматируем дату
-        date_formatted = date[:16] if date else "Неизвестно"
+        if len(text_msg) > 80:
+            text_msg = text_msg[:80] + "..."
         text += f"👤 `{user_id}`\n"
         text += f"📝 {text_msg}\n"
-        text += f"🕐 {date_formatted}\n\n"
+        text += f"🕐 {date}\n\n"
     
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[

@@ -318,12 +318,13 @@ def add_message(user_id, text):
         return False
 
 def get_recent_messages(limit=20):
-    """Возвращает последние сообщения"""
+    """Возвращает последние сообщения с правильным форматом времени"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT user_id, message_text, message_date 
+            SELECT user_id, message_text, 
+                   strftime('%d.%m.%Y %H:%M', message_date) as formatted_date
             FROM messages 
             ORDER BY message_date DESC 
             LIMIT ?
