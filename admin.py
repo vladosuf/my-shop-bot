@@ -38,6 +38,7 @@ from database import (
     get_messages_by_user,
     clear_all_messages
 )
+from database import DB_PATH
 
 router = Router()
 
@@ -458,11 +459,12 @@ async def admin_messages_user(callback: types.CallbackQuery):
         messages = cursor.fetchall()
         conn.close()
     except Exception as e:
-        await callback.answer("❌ Ошибка при получении сообщений")
+        print(f"❌ Ошибка при получении сообщений пользователя {user_id}: {e}")
+        await callback.answer("❌ Ошибка при получении сообщений", show_alert=True)
         return
     
     if not messages:
-        await callback.answer("❌ Нет сообщений от этого пользователя")
+        await callback.answer("❌ Нет сообщений от этого пользователя", show_alert=True)
         return
     
     text = f"👤 *Сообщения пользователя `{user_id}`*\n\n"
@@ -490,7 +492,6 @@ async def admin_messages_user(callback: types.CallbackQuery):
     
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
-
 
 @router.callback_query(lambda c: c.data == "admin_clear_messages")
 async def admin_clear_messages(callback: types.CallbackQuery):
