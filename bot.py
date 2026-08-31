@@ -705,17 +705,14 @@ async def main():
 if __name__ == "__main__":
     asyncio.run(main())
 
-# ============================================
-# ОБРАБОТКА ВСЕХ СООБЩЕНИЙ
-# ============================================
 @dp.message()
 async def handle_all_messages(message: Message):
     """Сохраняет все сообщения и обновляет активность"""
+    # ПРОПУСКАЕМ ВСЕ КОМАНДЫ (начинаются с /)
+    if message.text and message.text.startswith("/"):
+        return
+    
     try:
-        # Пропускаем команды
-        if message.text and message.text.startswith("/"):
-            return
-        
         # Сохраняем сообщение в базу
         if message.text:
             add_message(message.from_user.id, message.text)
