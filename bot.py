@@ -443,27 +443,21 @@ async def gift_buy(callback: types.CallbackQuery):
 # ============================================
 
 @dp.callback_query(F.data == "gift_premium")
-async def gift_premium_start(callback: types.CallbackQuery, state: FSMContext):
-    """Начало процесса дарения Премиума"""
-    await state.clear()
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
-        ]
-    ])
-    
+async def test_gift_premium(callback: types.CallbackQuery):
+    """Временный тестовый обработчик для проверки кнопки"""
     await callback.message.edit_text(
-        "🎁 *Подарок Премиума другу*\n\n"
-        "Чтобы подарить Telegram Премиум другу:\n\n"
-        "1️⃣ Укажи *Username* друга\n"
-        "   (убедись что ввёл правильно, при опечатке вернуть подарок не получится)\n\n"
-        "📝 Напиши в чат username друга (например: @ivan )",
-        reply_markup=keyboard,
+        "✅ *Кнопка 'Подарить Премиум другу' сработала!*\n\n"
+        "Это временный тестовый обработчик.\n"
+        "Если ты видишь это сообщение — кнопка работает.\n\n"
+        "🔙 Нажми 'Назад', чтобы вернуться в меню.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
+            ]
+        ]),
         parse_mode="Markdown"
     )
-    await state.set_state(GiftPremiumStates.waiting_for_username)
     await callback.answer()
-
 
 @dp.message(GiftPremiumStates.waiting_for_username)
 async def gift_premium_username(message: Message, state: FSMContext):
