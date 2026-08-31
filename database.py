@@ -4,7 +4,7 @@ import os
 DB_PATH = "users.db"
 
 def init_db():
-    """Создаёт базу данных и таблицы пользователей и покупок"""
+    """Создаёт базу данных и таблицы"""
     print("🔧 ВХОД В init_db()!")
     try:
         conn = sqlite3.connect(DB_PATH)
@@ -22,7 +22,7 @@ def init_db():
             )
         """)
         
-        # Таблица покупок
+        # Таблица покупок Звёзд
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS purchases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -32,9 +32,19 @@ def init_db():
             )
         """)
         
+        # Таблица покупок Премиума
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS premium_purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                duration TEXT,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         conn.commit()
         conn.close()
-        print("✅ Таблицы users и purchases созданы/проверены")
+        print("✅ Таблицы созданы/проверены")
         return True
     except Exception as e:
         print(f"❌ Ошибка при инициализации БД: {e}")
@@ -228,4 +238,61 @@ def get_today_purchases_count():
         return result or 0
     except Exception as e:
         print(f"❌ Ошибка при подсчёте покупок за сегодня: {e}")
+        return 0
+
+def add_premium_purchase(user_id, duration):
+    """Добавляет запись о покупке Премиума в базу данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Создаём таблицу покупок Премиума, если её нет
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS premium_purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                duration TEXT,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        cursor.execute("""
+            INSERT INTO premium_purchases (user_id, duration)
+            VALUES (?, ?)
+        """, (user_id, duration))
+        conn.commit()
+        conn.close()
+        print(f"✅ Покупка Премиума: {user_id} купил {duration} месяцев")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при добавлении покупки Премиума: {e}")
+        return False
+
+def get_total_premium_sold():
+    """Возвращает общее количество проданных Премиумов"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM premium_purchases")
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте Премиумов: {e}")
+        return 0
+
+def get_today_premium_sold():
+    """Возвращает количество Премиумов, проданных сегодня"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT COUNT(*) FROM premium_purchases 
+            WHERE DATE(purchase_date) = DATE('now')
+        """)
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0
+    except Exception as e:
+        print(f"❌ Ошибка при подсчёте Премиумов за сегодня: {e}")
         return 0

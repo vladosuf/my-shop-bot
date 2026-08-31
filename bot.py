@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -611,6 +612,8 @@ async def successful_payment(message: Message):
     if payload.startswith("premium_"):
         parts = payload.split("_")
         duration = parts[1]
+
+        add_premium_purchase(message.from_user.id, duration)
         
         logger.info(f"🌠 Премиум: {message.from_user.id} купил {duration} месяца")
         

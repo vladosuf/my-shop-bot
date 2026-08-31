@@ -15,6 +15,19 @@ from database import (
     get_today_purchases_count
 )
 from logger import logger
+from database import (
+    get_all_users, 
+    get_user_count, 
+    get_all_users_with_details, 
+    remove_user, 
+    get_inactive_users, 
+    update_user_activity,
+    get_total_stars_sold,
+    get_today_stars_sold,
+    get_today_purchases_count,
+    get_total_premium_sold,
+    get_today_premium_sold
+)
 
 router = Router()
 
@@ -70,6 +83,8 @@ async def admin_stats(callback: types.CallbackQuery):
     total_stars = get_total_stars_sold()
     today_stars = get_today_stars_sold()
     today_purchases = get_today_purchases_count()
+    total_premium = get_total_premium_sold()
+    today_premium = get_today_premium_sold()
     
     await callback.message.edit_text(
         f"📊 *Статистика*\n\n"
@@ -79,7 +94,10 @@ async def admin_stats(callback: types.CallbackQuery):
         f"⭐ *Продажи Звёзд*\n"
         f"📦 Всего продано: *{total_stars}*\n"
         f"📈 За сегодня: *{today_stars}*\n"
-        f"🛒 Покупок сегодня: *{today_purchases}*",
+        f"🛒 Покупок сегодня: *{today_purchases}*\n\n"
+        f"🌠 *Продажи Премиума*\n"
+        f"📦 Всего продано: *{total_premium}*\n"
+        f"📈 За сегодня: *{today_premium}*",
         parse_mode="Markdown"
     )
     await callback.answer()
