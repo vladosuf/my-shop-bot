@@ -348,3 +348,39 @@ def reset_db():
     except Exception as e:
         print(f"❌ Ошибка при пересоздании БД: {e}")
         return False
+
+def get_messages_by_user(limit=20):
+    """Возвращает сообщения, сгруппированные по пользователям"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT user_id, 
+                   GROUP_CONCAT(message_text, ' | ') as messages,
+                   COUNT(*) as count,
+                   MAX(message_date) as last_date
+            FROM messages 
+            GROUP BY user_id 
+            ORDER BY last_date DESC 
+            LIMIT ?
+        """, (limit,))
+        messages = cursor.fetchall()
+        conn.close()
+        return messages
+    except Exception as e:
+        print(f"❌ Ошибка при получении сообщений по пользователям: {e}")
+        return []
+
+def clear_all_messages():
+    """Удаляет все сообщения из базы данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM messages")
+        conn.commit()
+        conn.close()
+        print("🗑️ Все сообщения удалены!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при удалении сообщений: {e}")
+        return False

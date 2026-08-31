@@ -1,4 +1,5 @@
 import asyncio
+import sqlite3
 from datetime import datetime
 from aiogram import Router, types
 from aiogram.filters import Command
@@ -20,6 +21,23 @@ from database import (
     get_recent_messages
 )
 from logger import logger
+from database import (
+    get_all_users, 
+    get_user_count, 
+    get_all_users_with_details, 
+    remove_user, 
+    get_inactive_users, 
+    update_user_activity,
+    get_total_stars_sold,
+    get_today_stars_sold,
+    get_today_purchases_count,
+    get_total_premium_sold,
+    get_today_premium_sold,
+    get_active_users_today,
+    get_total_messages,
+    get_messages_by_user,
+    clear_all_messages
+)
 
 router = Router()
 
@@ -350,12 +368,12 @@ async def admin_info(callback: types.CallbackQuery):
 # ============================================
 @router.callback_query(lambda c: c.data == "admin_messages")
 async def admin_messages(callback: types.CallbackQuery):
-    """Показывает последние сообщения"""
+    """Показывает сообщения, сгруппированные по пользователям"""
     if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    messages = get_recent_messages(20)
+    messages = get_messages_by_user(15)
     
     if not messages:
         await callback.message.edit_text(
@@ -366,22 +384,105 @@ async def admin_messages(callback: types.CallbackQuery):
         await callback.answer()
         return
     
-    text = "📨 *Последние сообщения*\n\n"
-    for msg in messages:
-        user_id, text_msg, date = msg
-        # Обрезаем длинные сообщения
-        if len(text_msg) > 80:
-            text_msg = text_msg[:80] + "..."
-        text += f"👤 `{user_id}`\n"
-        text += f"📝 {text_msg}\n"
-        text += f"🕐 {date}\n\n"
+    total_messages = get_total_messages()
+    
+    text = f"📨 *Сообщения по пользователям*\n\n"
+    text += f"📊 Всего сообщений: *{total_messages}*\n"
+    text += f"👥 Пользователей: *{len(messages)}*\n\n"
+    text += "┌────────────┬──────────┬────────────┐\n"
+    text += "│ 👤 ID      │ 📝 Всего │ 🕐 Последнее│\n"
+    text += "├────────────┼──────────┼────────────┤\n"
+    
+    for user_id, messages_text, count, last_date in messages:
+        # Форматируем дату
+        last_date_formatted = last_date[:16] if last_date else "Неизвестно"
+        # Обрезаем ID
+        user_id_str = str(user_id)
+        if len(user_id_str) > 10:
+            user_id_str = user_id_str[:10] + "…"
+        
+        text += f"│ `{user_id_str}` │ {count:^8} │ {last_date_formatted} │\n"
+    
+    text += "└────────────┴──────────┴────────────┘\n\n"
+    text += "📌 Нажми на пользователя, чтобы увидеть его сообщения"
+    
+    # Создаём кнопки для каждого пользователя
+    keyboard_buttons = []
+    for user_id, messages_text, count, last_date in messages[:10]:
+        keyboard_buttons.append([
+            types.InlineKeyboardButton(
+                text=f"👤 {user_id} ({count} сообщ.)",
+                callback_data=f"msg_user_{user_id}"
+            )
+        ])
+    
+    keyboard_buttons.append([
+        types.InlineKeyboardButton(
+            text="🗑️ Очистить все сообщения",
+            callback_data="admin_clear_messages"
+        ),
+    ])
+    keyboard_buttons.append([
+        types.InlineKeyboardButton(
+            text="🔙 Назад",
+            callback_data="admin_panel"
+        ),
+    ])
+    
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+    
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("msg_user_"))
+async def admin_messages_user(callback: types.CallbackQuery):
+    """Показывает сообщения конкретного пользователя"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    user_id = int(callback.data.split("_")[2])
+    
+    # Получаем сообщения пользователя
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT message_text, message_date 
+            FROM messages 
+            WHERE user_id = ?
+            ORDER BY message_date DESC 
+            LIMIT 20
+        """, (user_id,))
+        messages = cursor.fetchall()
+        conn.close()
+    except Exception as e:
+        await callback.answer("❌ Ошибка при получении сообщений")
+        return
+    
+    if not messages:
+        await callback.answer("❌ Нет сообщений от этого пользователя")
+        return
+    
+    text = f"👤 *Сообщения пользователя `{user_id}`*\n\n"
+    
+    for msg_text, msg_date in messages[:15]:
+        if len(msg_text) > 50:
+            msg_text = msg_text[:50] + "..."
+        date_formatted = msg_date[:16] if msg_date else "Неизвестно"
+        text += f"📝 {msg_text}\n"
+        text += f"🕐 {date_formatted}\n\n"
+    
+    if len(messages) > 15:
+        text += f"...и ещё {len(messages) - 15} сообщений"
     
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
                 types.InlineKeyboardButton(
-                    text="🔙 Назад",
-                    callback_data="admin_panel"
+                    text="🔙 Назад к списку",
+                    callback_data="admin_messages"
                 ),
             ]
         ]
@@ -390,6 +491,60 @@ async def admin_messages(callback: types.CallbackQuery):
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
+
+@router.callback_query(lambda c: c.data == "admin_clear_messages")
+async def admin_clear_messages(callback: types.CallbackQuery):
+    """Очищает все сообщения"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    # Подтверждение
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text="✅ Да, удалить всё",
+                    callback_data="admin_clear_confirm"
+                ),
+                types.InlineKeyboardButton(
+                    text="❌ Отмена",
+                    callback_data="admin_messages"
+                ),
+            ]
+        ]
+    )
+    
+    await callback.message.edit_text(
+        "⚠️ *Подтверждение*\n\n"
+        "Ты уверен, что хочешь удалить ВСЕ сообщения?\n"
+        "Это действие нельзя отменить!",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "admin_clear_confirm")
+async def admin_clear_confirm(callback: types.CallbackQuery):
+    """Подтверждение очистки сообщений"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    if clear_all_messages():
+        await callback.message.edit_text(
+            "✅ *Все сообщения удалены!*\n\n"
+            "База сообщений очищена.",
+            parse_mode="Markdown"
+        )
+    else:
+        await callback.message.edit_text(
+            "❌ *Ошибка при удалении сообщений.*",
+            parse_mode="Markdown"
+        )
+    
+    await callback.answer()
 
 # ============================================
 # ОБРАБОТЧИК РАССЫЛКИ
