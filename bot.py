@@ -10,9 +10,6 @@ from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
 from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase
-from aiogram.fsm.state import State, StatesGroup
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.storage.memory import MemoryStorage
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -20,17 +17,8 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=BOT_TOKEN)
-storage = MemoryStorage()
-dp = Dispatcher(storage=storage)
+dp = Dispatcher()
 dp.include_router(admin_router)
-
-
-# ============================================
-# FSM СОСТОЯНИЯ ДЛЯ ПОДАРКА ПРЕМИУМА
-# ============================================
-class GiftPremiumStates(StatesGroup):
-    waiting_for_username = State()
-    waiting_for_duration = State()
 
 
 # ============================================
@@ -439,50 +427,56 @@ async def gift_buy(callback: types.CallbackQuery):
 
 
 # ============================================
-# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ЧЕРЕЗ FSM)
+# КНОПКА: ПОДАРИТЬ ПРЕМИУМ ДРУГУ (ПРОСТОЙ СПОСОБ)
 # ============================================
 
 @dp.callback_query(F.data == "gift_premium")
-async def test_gift_premium(callback: types.CallbackQuery):
-    """Временный тестовый обработчик для проверки кнопки"""
+async def gift_premium_start(callback: types.CallbackQuery):
+    """Начало процесса дарения Премиума"""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
+        ]
+    ])
+    
     await callback.message.edit_text(
-        "✅ *Кнопка 'Подарить Премиум другу' сработала!*\n\n"
-        "Это временный тестовый обработчик.\n"
-        "Если ты видишь это сообщение — кнопка работает.\n\n"
-        "🔙 Нажми 'Назад', чтобы вернуться в меню.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
-            ]
-        ]),
+        "🎁 *Подарок Премиума другу*\n\n"
+        "Чтобы подарить Telegram Премиум другу:\n\n"
+        "1️⃣ Укажи *Username* друга\n"
+        "   (убедись что ввёл правильно, при опечатке вернуть подарок не получится)\n\n"
+        "📝 Напиши в чат username друга (например: @ivan )",
+        reply_markup=keyboard,
         parse_mode="Markdown"
     )
     await callback.answer()
 
-@dp.message(GiftPremiumStates.waiting_for_username)
-async def gift_premium_username(message: Message, state: FSMContext):
-    """Обработка ввода username друга"""
-    if not message.text or message.text.startswith("/"):
-        await message.answer("❌ Пожалуйста, введи username друга (например: @ivan)")
-        return
-    
+
+@dp.message(lambda msg: msg.text and msg.text.startswith("@") and msg.from_user.id in user_gift_data)
+async def gift_premium_username(message: Message):
+    """Обработка ввода username друга для подарка Премиума"""
     username = message.text.strip()
     
-    # Сохраняем username в состоянии
-    await state.update_data(friend_username=username)
+    # Проверяем, что пользователь в процессе дарения Премиума
+    if message.from_user.id not in user_gift_data:
+        return
+    
+    user_gift_data[message.from_user.id] = {
+        "friend_username": username,
+        "gift_type": "premium"
+    }
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
-            InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="gift_premium_duration_3"),
+            InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="gift_premium_3"),
         ],
         [
-            InlineKeyboardButton(text="🌠 6 месяцев — 1450 ₽", callback_data="gift_premium_duration_6"),
+            InlineKeyboardButton(text="🌠 6 месяцев — 1450 ₽", callback_data="gift_premium_6"),
         ],
         [
-            InlineKeyboardButton(text="🌠 12 месяцев — 2600 ₽", callback_data="gift_premium_duration_12"),
+            InlineKeyboardButton(text="🌠 12 месяцев — 2600 ₽", callback_data="gift_premium_12"),
         ],
         [
-            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_premium_cancel"),
+            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_cancel"),
         ]
     ])
     
@@ -492,22 +486,20 @@ async def gift_premium_username(message: Message, state: FSMContext):
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
-    await state.set_state(GiftPremiumStates.waiting_for_duration)
 
 
-@dp.callback_query(F.data.startswith("gift_premium_duration_"))
-async def gift_premium_duration(callback: types.CallbackQuery, state: FSMContext):
+@dp.callback_query(F.data.startswith("gift_premium_"))
+async def gift_premium_process(callback: types.CallbackQuery):
     """Обработка выбора срока для подарка Премиума"""
-    duration = callback.data.split("_")[3]
+    user_id = callback.from_user.id
     
-    data = await state.get_data()
-    friend_username = data.get("friend_username")
-    
-    if not friend_username:
+    if user_id not in user_gift_data:
         await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
-        await state.clear()
         await callback.answer()
         return
+    
+    friend_username = user_gift_data[user_id]["friend_username"]
+    duration = callback.data.split("_")[2]
     
     prices = {
         "3": 1070,
@@ -518,18 +510,15 @@ async def gift_premium_duration(callback: types.CallbackQuery, state: FSMContext
     price_rub = prices.get(duration, 1070)
     stars_amount = int(price_rub / 1.3)
     
-    # Сохраняем в состояние
-    await state.update_data(duration=duration, stars_amount=stars_amount)
-    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(
                 text=f"✅ Подарить {duration} месяца Премиум для {friend_username}",
-                callback_data="gift_premium_confirm"
+                callback_data=f"gift_premium_buy_{duration}_{friend_username}"
             ),
         ],
         [
-            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_premium_cancel"),
+            InlineKeyboardButton(text="🔙 Отмена", callback_data="gift_cancel"),
         ]
     ])
     
@@ -544,25 +533,34 @@ async def gift_premium_duration(callback: types.CallbackQuery, state: FSMContext
     await callback.answer()
 
 
-@dp.callback_query(F.data == "gift_premium_confirm")
-async def gift_premium_confirm(callback: types.CallbackQuery, state: FSMContext):
-    """Подтверждение покупки подарка Премиума"""
-    data = await state.get_data()
-    friend_username = data.get("friend_username")
-    duration = data.get("duration")
-    stars_amount = data.get("stars_amount")
+@dp.callback_query(F.data.startswith("gift_premium_buy_"))
+async def gift_premium_buy(callback: types.CallbackQuery):
+    """Оформление покупки подарка Премиума"""
+    user_id = callback.from_user.id
     
-    if not all([friend_username, duration, stars_amount]):
+    if user_id not in user_gift_data:
         await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
-        await state.clear()
         await callback.answer()
         return
+    
+    parts = callback.data.split("_")
+    duration = parts[3]
+    friend_username = parts[4]
+    
+    prices = {
+        "3": 1070,
+        "6": 1450,
+        "12": 2600
+    }
+    
+    price_rub = prices.get(duration, 1070)
+    stars_amount = int(price_rub / 1.3)
     
     await bot.send_invoice(
         chat_id=callback.from_user.id,
         title=f"🎁 Подарок Премиума для {friend_username}",
         description=f"Ты даришь {duration} месяца Telegram Премиум пользователю {friend_username}",
-        payload=f"gift_premium_{callback.from_user.id}_{friend_username}_{duration}",
+        payload=f"gift_premium_{user_id}_{friend_username}_{duration}",
         provider_token="",
         currency="XTR",
         prices=[
@@ -571,40 +569,8 @@ async def gift_premium_confirm(callback: types.CallbackQuery, state: FSMContext)
         start_parameter="gift_premium",
     )
     
-    await state.clear()
     await callback.answer()
     await callback.message.delete()
-
-
-@dp.callback_query(F.data == "gift_premium_cancel")
-async def gift_premium_cancel(callback: types.CallbackQuery, state: FSMContext):
-    """Отмена дарения Премиума"""
-    await state.clear()
-    
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
-            InlineKeyboardButton(text="🌠 Купить Премиум", callback_data="buy_premium"),
-        ],
-        [
-            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-            InlineKeyboardButton(text="🎁 Подарить Премиум другу", callback_data="gift_premium"),
-        ],
-        [
-            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
-        ],
-        [
-            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
-            InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
-        ]
-    ])
-    
-    await callback.message.edit_text(
-        "🚀 Главное меню:\n\n"
-        "Покупай ⭐Telegram Звёзды и 🌠Премиум, дари их друзьям!",
-        reply_markup=keyboard
-    )
-    await callback.answer()
 
 
 # ============================================
@@ -775,11 +741,12 @@ async def successful_payment(message: Message):
     # Подарок Премиума
     if payload.startswith("gift_premium_"):
         parts = payload.split("_")
-        gift_from = int(parts[2])
-        friend_username = parts[3]
-        duration = parts[4]
+        user_id = int(parts[1])
+        friend_username = parts[2]
+        duration = parts[3]
         
         logger.info(f"🎁 Подарок Премиума: {message.from_user.id} подарил {duration} месяцев пользователю {friend_username}")
+        user_gift_data.pop(message.from_user.id, None)
         
         await message.answer(
             f"🎁 *Подарок Премиума отправлен!*\n\n"
