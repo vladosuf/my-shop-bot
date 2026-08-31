@@ -12,37 +12,14 @@ from database import (
     update_user_activity,
     get_total_stars_sold,
     get_today_stars_sold,
-    get_today_purchases_count
-)
-from logger import logger
-from database import (
-    get_all_users, 
-    get_user_count, 
-    get_all_users_with_details, 
-    remove_user, 
-    get_inactive_users, 
-    update_user_activity,
-    get_total_stars_sold,
-    get_today_stars_sold,
-    get_today_purchases_count,
-    get_total_premium_sold,
-    get_today_premium_sold
-)
-from database import (
-    get_all_users, 
-    get_user_count, 
-    get_all_users_with_details, 
-    remove_user, 
-    get_inactive_users, 
-    update_user_activity,
-    get_total_stars_sold,
-    get_today_stars_sold,
     get_today_purchases_count,
     get_total_premium_sold,
     get_today_premium_sold,
     get_active_users_today,
-    get_total_messages
+    get_total_messages,
+    get_recent_messages
 )
+from logger import logger
 
 router = Router()
 
@@ -74,6 +51,7 @@ async def admin_panel(message: Message):
                 types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
             ],
             [
+                types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
                 types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
             ]
         ]
@@ -322,6 +300,7 @@ async def admin_panel_back(callback: types.CallbackQuery):
                 types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
             ],
             [
+                types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
                 types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
             ]
         ]
@@ -363,6 +342,54 @@ async def admin_info(callback: types.CallbackQuery):
         reply_markup=keyboard,
         parse_mode="Markdown"
     )
+    await callback.answer()
+
+
+# ============================================
+# ПРОСМОТР СООБЩЕНИЙ
+# ============================================
+@router.callback_query(lambda c: c.data == "admin_messages")
+async def admin_messages(callback: types.CallbackQuery):
+    """Показывает последние сообщения"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    messages = get_recent_messages(20)
+    
+    if not messages:
+        await callback.message.edit_text(
+            "📨 *Нет сообщений.*\n\n"
+            "Сообщения начнут появляться, когда пользователи напишут боту.",
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        return
+    
+    text = "📨 *Последние сообщения*\n\n"
+    for msg in messages:
+        user_id, text_msg, date = msg
+        # Обрезаем длинные сообщения
+        if len(text_msg) > 100:
+            text_msg = text_msg[:100] + "..."
+        # Форматируем дату
+        date_formatted = date[:16] if date else "Неизвестно"
+        text += f"👤 `{user_id}`\n"
+        text += f"📝 {text_msg}\n"
+        text += f"🕐 {date_formatted}\n\n"
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text="🔙 Назад",
+                    callback_data="admin_panel"
+                ),
+            ]
+        ]
+    )
+    
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
     await callback.answer()
 
 

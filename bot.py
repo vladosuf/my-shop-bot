@@ -39,6 +39,8 @@ async def set_main_menu():
 @dp.message(Command("start"))
 async def start_command(message: Message):
     logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
+
+    add_message(message.from_user.id, "/start")
     
     add_user(
         message.from_user.id,
@@ -587,6 +589,7 @@ async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
 
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
+    add_message(message.from_user.id, f"💳 Покупка: {payload}")
     payment = message.successful_payment
     payload = payment.invoice_payload
     
@@ -704,26 +707,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-@dp.message()
-async def handle_all_messages(message: Message):
-    """Сохраняет все сообщения и обновляет активность"""
-    # ПРОПУСКАЕМ ВСЕ КОМАНДЫ (начинаются с /)
-    if message.text and message.text.startswith("/"):
-        return
-    
-    try:
-        # Сохраняем сообщение в базу
-        if message.text:
-            add_message(message.from_user.id, message.text)
-        
-        # Обновляем активность пользователя
-        add_user(
-            message.from_user.id,
-            message.from_user.username,
-            message.from_user.first_name,
-            message.from_user.last_name
-        )
-        update_user_activity(message.from_user.id)
-    except Exception as e:
-        logger.error(f"❌ Ошибка при обработке сообщения: {e}")

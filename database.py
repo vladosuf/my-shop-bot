@@ -77,6 +77,23 @@ def add_user(user_id, username=None, first_name=None, last_name=None):
         print(f"❌ Ошибка при добавлении пользователя: {e}")
         return False
 
+def update_user_activity(user_id):
+    """Обновляет время последней активности пользователя"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE users 
+            SET last_active = CURRENT_TIMESTAMP 
+            WHERE user_id = ?
+        """, (user_id,))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при обновлении активности: {e}")
+        return False
+
 def get_all_users():
     """Возвращает список всех user_id"""
     try:
@@ -116,37 +133,6 @@ def get_all_users_with_details():
         print(f"❌ Ошибка при получении данных пользователей: {e}")
         return []
 
-def update_user_activity(user_id):
-    """Обновляет время последней активности пользователя"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("""
-            UPDATE users 
-            SET last_active = CURRENT_TIMESTAMP 
-            WHERE user_id = ?
-        """, (user_id,))
-        conn.commit()
-        conn.close()
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка при обновлении активности: {e}")
-        return False
-
-def remove_user(user_id):
-    """Удаляет пользователя из базы данных"""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
-        conn.commit()
-        conn.close()
-        print(f"🗑️ Пользователь {user_id} удалён из БД")
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка при удалении пользователя: {e}")
-        return False
-
 def get_inactive_users(days=30):
     """Возвращает пользователей, неактивных более N дней"""
     try:
@@ -164,35 +150,25 @@ def get_inactive_users(days=30):
         print(f"❌ Ошибка при получении неактивных пользователей: {e}")
         return []
 
-def reset_db():
-    """Удаляет старую базу данных и создаёт новую"""
-    try:
-        if os.path.exists(DB_PATH):
-            os.remove(DB_PATH)
-            print(f"🗑️ Старая база {DB_PATH} удалена!")
-        init_db()
-        print("✅ База данных пересоздана!")
-        return True
-    except Exception as e:
-        print(f"❌ Ошибка при пересоздании БД: {e}")
-        return False
-
-def add_purchase(user_id, stars_amount):
-    """Добавляет запись о покупке в базу данных"""
+def remove_user(user_id):
+    """Удаляет пользователя из базы данных"""
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Создаём таблицу покупок, если её нет
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS purchases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                stars_amount INTEGER,
-                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
+        cursor.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        print(f"🗑️ Пользователь {user_id} удалён из БД")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при удалении пользователя: {e}")
+        return False
+
+def add_purchase(user_id, stars_amount):
+    """Добавляет запись о покупке Звёзд в базу данных"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
         cursor.execute("""
             INSERT INTO purchases (user_id, stars_amount)
             VALUES (?, ?)
@@ -255,17 +231,6 @@ def add_premium_purchase(user_id, duration):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Создаём таблицу покупок Премиума, если её нет
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS premium_purchases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                duration TEXT,
-                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
         cursor.execute("""
             INSERT INTO premium_purchases (user_id, duration)
             VALUES (?, ?)
@@ -328,17 +293,6 @@ def get_total_messages():
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Создаём таблицу сообщений, если её нет
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                message_text TEXT,
-                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
         cursor.execute("SELECT COUNT(*) FROM messages")
         count = cursor.fetchone()[0]
         conn.close()
@@ -352,17 +306,6 @@ def add_message(user_id, text):
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        
-        # Создаём таблицу сообщений, если её нет
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
-                message_text TEXT,
-                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
         cursor.execute("""
             INSERT INTO messages (user_id, message_text)
             VALUES (?, ?)
@@ -372,4 +315,35 @@ def add_message(user_id, text):
         return True
     except Exception as e:
         print(f"❌ Ошибка при добавлении сообщения: {e}")
+        return False
+
+def get_recent_messages(limit=20):
+    """Возвращает последние сообщения"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT user_id, message_text, message_date 
+            FROM messages 
+            ORDER BY message_date DESC 
+            LIMIT ?
+        """, (limit,))
+        messages = cursor.fetchall()
+        conn.close()
+        return messages
+    except Exception as e:
+        print(f"❌ Ошибка при получении сообщений: {e}")
+        return []
+
+def reset_db():
+    """Удаляет старую базу данных и создаёт новую"""
+    try:
+        if os.path.exists(DB_PATH):
+            os.remove(DB_PATH)
+            print(f"🗑️ Старая база {DB_PATH} удалена!")
+        init_db()
+        print("✅ База данных пересоздана!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при пересоздании БД: {e}")
         return False
