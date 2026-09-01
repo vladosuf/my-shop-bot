@@ -9,9 +9,7 @@ from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
-from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase
-from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase
-from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase, add_message
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase, add_message, add_action
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -39,8 +37,6 @@ async def set_main_menu():
 @dp.message(Command("start"))
 async def start_command(message: Message):
     logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
-
-    add_message(message.from_user.id, "/start")
     
     add_user(
         message.from_user.id,
@@ -50,6 +46,9 @@ async def start_command(message: Message):
     )
     
     update_user_activity(message.from_user.id)
+    
+    add_message(message.from_user.id, "/start")
+    add_action(message.from_user.id, "Главное меню")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -81,6 +80,8 @@ async def start_command(message: Message):
 @dp.message(Command("help"))
 async def help_command(message: Message):
     """Команда помощи - открывает главное меню"""
+    add_action(message.from_user.id, "Помощь")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
@@ -123,6 +124,8 @@ async def menu_command(message: Message):
 # ============================================
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
+    add_action(callback.from_user.id, "Купить Звёзды")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="⭐ 50 — 65 ₽", callback_data="buy_50"),
@@ -168,6 +171,8 @@ async def show_products(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "buy_premium")
 async def buy_premium(callback: types.CallbackQuery):
     """Покупка Telegram Премиума для себя"""
+    add_action(callback.from_user.id, "Купить Премиум")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🌠 3 месяца — 1070 ₽", callback_data="premium_3"),
@@ -236,6 +241,8 @@ user_gift_data = {}
 @dp.callback_query(F.data == "gift_friend")
 async def gift_friend_start(callback: types.CallbackQuery):
     """Начало процесса дарения - запрос username друга"""
+    add_action(callback.from_user.id, "Подарить Звёзды другу")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
@@ -462,6 +469,8 @@ async def gift_cancel(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "news")
 async def news(callback: types.CallbackQuery):
+    add_action(callback.from_user.id, "Новости")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="📢 Подписаться на канал", url="https://t.me/VeltharShop"),
@@ -486,6 +495,8 @@ async def news(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "support")
 async def support(callback: types.CallbackQuery):
+    add_action(callback.from_user.id, "Поддержка")
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_menu"),
@@ -500,6 +511,53 @@ async def support(callback: types.CallbackQuery):
         "📌 Мы ответим в ближайшее время!",
         reply_markup=keyboard,
         parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "back_to_menu")
+async def back_to_menu(callback: types.CallbackQuery):
+    add_action(callback.from_user.id, "Назад в меню")
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
+            InlineKeyboardButton(text="🌠 Купить Премиум", callback_data="buy_premium"),
+        ],
+        [
+            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
+        ],
+        [
+            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
+        ],
+        [
+            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
+            InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
+        ]
+    ])
+    
+    await callback.message.edit_text(
+        "🚀 Главное меню:\n\n"
+        "Покупай ⭐Telegram Звёзды и 🌠Премиум, дари их друзьям!",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "info")
+async def show_info(callback: types.CallbackQuery):
+    add_action(callback.from_user.id, "О боте")
+    
+    await callback.message.edit_text(
+        "ℹ️ О боте\n\n"
+        "Этот бот помогает покупать Telegram Звёзды и Премиум.\n"
+        "Звёзды — это валюта Telegram для поддержки авторов.\n\n"
+        "💰 Как это работает:\n"
+        "1. Выбери нужный пакет\n"
+        "2. Оплати внутри Telegram\n"
+        "3. Получи товар на свой аккаунт\n\n"
+        "🚀 Курс: 1 Звезда = 1.3 ₽\n\n"
+        "❓ Вопросы? Пиши @vladosuf"
     )
     await callback.answer()
 
@@ -589,9 +647,10 @@ async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
 
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
-    add_message(message.from_user.id, f"💳 Покупка: {payload}")
     payment = message.successful_payment
     payload = payment.invoice_payload
+    
+    add_message(message.from_user.id, f"💳 Оплата: {payload}")
     
     # Подарок Звёзд
     if payload.startswith("gift_"):
@@ -616,7 +675,7 @@ async def successful_payment(message: Message):
     if payload.startswith("premium_"):
         parts = payload.split("_")
         duration = parts[1]
-
+        
         add_premium_purchase(message.from_user.id, duration)
         
         logger.info(f"🌠 Премиум: {message.from_user.id} купил {duration} месяца")
@@ -644,49 +703,6 @@ async def successful_payment(message: Message):
             f"Спасибо за покупку! 🚀"
         )
         return
-
-
-@dp.callback_query(F.data == "back_to_menu")
-async def back_to_menu(callback: types.CallbackQuery):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(text="🚀 Купить Звёзды", callback_data="buy_stars"),
-            InlineKeyboardButton(text="🌠 Купить Премиум", callback_data="buy_premium"),
-        ],
-        [
-            InlineKeyboardButton(text="🎁 Подарить Звёзды другу", callback_data="gift_friend"),
-        ],
-        [
-            InlineKeyboardButton(text="📢 Новости", callback_data="news"),
-        ],
-        [
-            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support"),
-            InlineKeyboardButton(text="ℹ️ О боте", callback_data="info"),
-        ]
-    ])
-    
-    await callback.message.edit_text(
-        "🚀 Главное меню:\n\n"
-        "Покупай ⭐Telegram Звёзды и 🌠Премиум, дари их друзьям!",
-        reply_markup=keyboard
-    )
-    await callback.answer()
-
-
-@dp.callback_query(F.data == "info")
-async def show_info(callback: types.CallbackQuery):
-    await callback.message.edit_text(
-        "ℹ️ О боте\n\n"
-        "Этот бот помогает покупать Telegram Звёзды и Премиум.\n"
-        "Звёзды — это валюта Telegram для поддержки авторов.\n\n"
-        "💰 Как это работает:\n"
-        "1. Выбери нужный пакет\n"
-        "2. Оплати внутри Telegram\n"
-        "3. Получи товар на свой аккаунт\n\n"
-        "🚀 Курс: 1 Звезда = 1.3 ₽\n\n"
-        "❓ Вопросы? Пиши @vladosuf"
-    )
-    await callback.answer()
 
 
 # ============================================
