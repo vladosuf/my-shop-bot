@@ -389,3 +389,59 @@ def reset_db():
     except Exception as e:
         print(f"❌ Ошибка при пересоздании БД: {e}")
         return False
+
+def add_action(user_id, action_text):
+    """Сохраняет действие пользователя (нажатие на кнопку)"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO messages (user_id, message_text)
+            VALUES (?, ?)
+        """, (user_id, f"🔄 {action_text}"))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при сохранении действия: {e}")
+        return False
+
+def get_recent_messages_all(limit=20):
+    """Возвращает последние 20 сообщений (включая действия)"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT 
+                m.user_id,
+                u.username,
+                u.first_name,
+                m.message_text,
+                datetime(m.message_date, '+7 hours') as local_time
+            FROM messages m
+            LEFT JOIN users u ON m.user_id = u.user_id
+            ORDER BY m.message_date DESC 
+            LIMIT ?
+        """, (limit,))
+        messages = cursor.fetchall()
+        conn.close()
+        return messages
+    except Exception as e:
+        print(f"❌ Ошибка при получении последних сообщений: {e}")
+        return []
+
+def add_action(user_id, action_text):
+    """Сохраняет действие пользователя (нажатие на кнопку)"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO messages (user_id, message_text)
+            VALUES (?, ?)
+        """, (user_id, f"🔄 {action_text}"))
+        conn.commit()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при сохранении действия: {e}")
+        return False
