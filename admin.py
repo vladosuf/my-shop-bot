@@ -56,16 +56,16 @@ ADMIN_IDS = [1238597483]  # ← ВСТАВЬ СВОЙ ID СЮДА!
 # Временное хранилище для рассылки
 mailing_data = {}
 
-
 @router.message(Command("admin"))
 async def admin_panel(message: Message):
     """Админ-панель"""
     if message.from_user.id not in ADMIN_IDS:
         await message.answer("⛔ У тебя нет доступа к этой команде!")
         return
-    
+
     update_user_activity(message.from_user.id)
-    
+
+    # Этот блок начинается с 4 пробелов
     keyboard = types.InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -78,11 +78,15 @@ async def admin_panel(message: Message):
             ],
             [
                 types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
+                types.InlineKeyboardButton(text="🔒 Блокировка", callback_data="admin_block"),
+            ],
+            [
                 types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
             ]
         ]
     )
-    
+
+    # Это сообщение тоже на 4 пробела
     await message.answer(
         "🛡️ *Админ-панель*\n\n"
         "Выбери действие:",
@@ -346,7 +350,7 @@ async def admin_panel_back(callback: types.CallbackQuery):
         [
             types.InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
             types.InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users"),
-        ],
+        ], 
         [
             types.InlineKeyboardButton(text="📨 Рассылка", callback_data="admin_mailing"),
             types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
