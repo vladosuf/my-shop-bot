@@ -9,7 +9,7 @@ from aiogram.enums import ContentType
 from dotenv import load_dotenv
 from admin import router as admin_router
 from logger import logger
-from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase, add_message, add_action
+from database import init_db, add_user, get_all_users, get_user_count, update_user_activity, remove_user, add_purchase, add_premium_purchase, add_message, add_action, is_user_blocked
 
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -36,6 +36,17 @@ async def set_main_menu():
 
 @dp.message(Command("start"))
 async def start_command(message: Message):
+    # Проверяем, не заблокирован ли пользователь
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer(
+            f"⛔ *Вы заблокированы!*\n\n"
+            f"Причина: {reason}\n\n"
+            f"Для разблокировки обратитесь к администратору.",
+            parse_mode="Markdown"
+        )
+        return
+    
     logger.info(f"👤 Пользователь {message.from_user.id} запустил бота")
     
     add_user(
@@ -79,7 +90,12 @@ async def start_command(message: Message):
 
 @dp.message(Command("help"))
 async def help_command(message: Message):
-    """Команда помощи - открывает главное меню"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(message.from_user.id, "Помощь")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -109,7 +125,12 @@ async def help_command(message: Message):
 
 @dp.message(Command("menu"))
 async def menu_command(message: Message):
-    """Принудительная установка кнопки Меню"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     menu_commands = [
         BotCommand(command="start", description="🚀 Главное меню"),
         BotCommand(command="help", description="ℹ️ Помощь"),
@@ -124,6 +145,12 @@ async def menu_command(message: Message):
 # ============================================
 @dp.callback_query(F.data == "buy_stars")
 async def show_products(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Купить Звёзды")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -171,6 +198,12 @@ async def show_products(callback: types.CallbackQuery):
 @dp.callback_query(F.data == "buy_premium")
 async def buy_premium(callback: types.CallbackQuery):
     """Покупка Telegram Премиума для себя"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Купить Премиум")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -204,6 +237,12 @@ async def buy_premium(callback: types.CallbackQuery):
 @dp.callback_query(F.data.startswith("premium_"))
 async def process_premium_purchase(callback: types.CallbackQuery):
     """Обработка покупки Премиума"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     duration = callback.data.split("_")[1]
     
     prices = {
@@ -241,6 +280,12 @@ user_gift_data = {}
 @dp.callback_query(F.data == "gift_friend")
 async def gift_friend_start(callback: types.CallbackQuery):
     """Начало процесса дарения - запрос username друга"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Подарить Звёзды другу")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -265,6 +310,12 @@ async def gift_friend_start(callback: types.CallbackQuery):
 @dp.message(lambda msg: msg.text and msg.text.startswith("@"))
 async def gift_friend_username(message: Message):
     """Обработка ввода username друга"""
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     username = message.text.strip()
     
     user_gift_data[message.from_user.id] = {"friend_username": username}
@@ -309,6 +360,12 @@ async def gift_friend_username(message: Message):
 
 @dp.callback_query(F.data.startswith("gift_"))
 async def gift_process(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     user_id = callback.from_user.id
     if user_id not in user_gift_data:
         await callback.message.edit_text("❌ Ошибка! Начни сначала: /start")
@@ -370,6 +427,12 @@ async def gift_process(callback: types.CallbackQuery):
 
 @dp.message(lambda msg: msg.text and msg.text.isdigit() and msg.from_user.id in user_gift_data)
 async def gift_custom_amount(message: Message):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     stars_amount = int(message.text)
     
     if stars_amount < 50:
@@ -408,6 +471,12 @@ async def gift_custom_amount(message: Message):
 
 @dp.callback_query(F.data.startswith("gift_buy_"))
 async def gift_buy(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     user_id = callback.from_user.id
     
     if user_id not in user_gift_data:
@@ -440,6 +509,12 @@ async def gift_buy(callback: types.CallbackQuery):
 # ============================================
 @dp.callback_query(F.data == "gift_cancel")
 async def gift_cancel(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     user_gift_data.pop(callback.from_user.id, None)
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -469,6 +544,12 @@ async def gift_cancel(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "news")
 async def news(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Новости")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -495,6 +576,12 @@ async def news(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "support")
 async def support(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Поддержка")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -517,6 +604,12 @@ async def support(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "back_to_menu")
 async def back_to_menu(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "Назад в меню")
     
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -546,6 +639,12 @@ async def back_to_menu(callback: types.CallbackQuery):
 
 @dp.callback_query(F.data == "info")
 async def show_info(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     add_action(callback.from_user.id, "О боте")
     
     await callback.message.edit_text(
@@ -567,6 +666,12 @@ async def show_info(callback: types.CallbackQuery):
 # ============================================
 @dp.callback_query(F.data == "custom_amount")
 async def custom_amount_input(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(text="🔙 Назад к пакетам", callback_data="buy_stars"),
@@ -586,6 +691,12 @@ async def custom_amount_input(callback: types.CallbackQuery):
 
 @dp.message(lambda msg: msg.text and msg.text.isdigit() and msg.from_user.id not in user_gift_data)
 async def handle_custom_amount(message: Message):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     stars_amount = int(message.text)
     
     if stars_amount < 50:
@@ -622,6 +733,12 @@ async def handle_custom_amount(message: Message):
 
 @dp.callback_query(F.data.startswith("buy_"))
 async def process_purchase(callback: types.CallbackQuery):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(callback.from_user.id)
+    if blocked:
+        await callback.message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     product_code = callback.data.split("_")[1]
     stars_amount = int(product_code)
     
@@ -647,6 +764,12 @@ async def pre_checkout(pre_checkout_query: PreCheckoutQuery):
 
 @dp.message(F.content_type == ContentType.SUCCESSFUL_PAYMENT)
 async def successful_payment(message: Message):
+    # Проверяем блокировку
+    blocked, reason = is_user_blocked(message.from_user.id)
+    if blocked:
+        await message.answer("⛔ Вы заблокированы! Обратитесь к администратору.")
+        return
+    
     payment = message.successful_payment
     payload = payment.invoice_payload
     

@@ -24,6 +24,29 @@ from database import (
     DB_PATH
 )
 from logger import logger
+from database import (
+    get_all_users, 
+    get_user_count, 
+    get_all_users_with_details, 
+    remove_user, 
+    get_inactive_users, 
+    update_user_activity,
+    get_total_stars_sold,
+    get_today_stars_sold,
+    get_today_purchases_count,
+    get_total_premium_sold,
+    get_today_premium_sold,
+    get_active_users_today,
+    get_total_messages,
+    get_messages_by_user,
+    clear_all_messages,
+    get_user_messages,
+    DB_PATH,
+    block_user,
+    unblock_user,
+    is_user_blocked,
+    get_blocked_users
+)
 
 router = Router()
 
@@ -653,3 +676,190 @@ async def handle_mailing_message(message: types.Message):
         )
     finally:
         mailing_data.pop(message.from_user.id, None)
+
+keyboard = types.InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            types.InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
+            types.InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users"),
+        ],
+        [
+            types.InlineKeyboardButton(text="📨 Рассылка", callback_data="admin_mailing"),
+            types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
+        ],
+        [
+            types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
+            types.InlineKeyboardButton(text="🔒 Блокировка", callback_data="admin_block"),
+        ],
+        [
+            types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
+        ]
+    ]
+)
+
+@router.callback_query(lambda c: c.data == "admin_block")
+async def admin_block(callback: types.CallbackQuery):
+    """Управление блокировками"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    blocked_users = get_blocked_users()
+    
+    text = "🔒 *Управление блокировками*\n\n"
+    
+    if blocked_users:
+        text += "👥 *Заблокированные пользователи:*\n\n"
+        for user_id, username, first_name, reason, blocked_at in blocked_users[:10]:
+            name = first_name or "Без имени"
+            username_str = f"@{username}" if username else "Нет username"
+            text += f"• {name} ({username_str})\n"
+            text += f"  🆔 `{user_id}`\n"
+            text += f"  📝 Причина: {reason}\n"
+            text += f"  🕐 {blocked_at[:16]}\n\n"
+        if len(blocked_users) > 10:
+            text += f"...и ещё {len(blocked_users) - 10} заблокированных"
+    else:
+        text += "✅ Нет заблокированных пользователей."
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text="🔒 Заблокировать пользователя",
+                    callback_data="admin_block_user"
+                ),
+                types.InlineKeyboardButton(
+                    text="🔓 Разблокировать",
+                    callback_data="admin_unblock_user"
+                ),
+            ],
+            [
+                types.InlineKeyboardButton(
+                    text="🔙 Назад",
+                    callback_data="admin_panel"
+                ),
+            ]
+        ]
+    )
+    
+    await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data == "admin_block_user")
+async def admin_block_user(callback: types.CallbackQuery):
+    """Блокировка пользователя"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    keyboard = types.InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                types.InlineKeyboardButton(
+                    text="🔙 Отмена",
+                    callback_data="admin_block"
+                ),
+            ]
+        ]
+    )
+    
+    await callback.message.edit_text(
+        "🔒 *Блокировка пользователя*\n\n"
+        "Напиши в чат ID пользователя и причину блокировки.\n\n"
+        "Формат: `ID Причина`\n"
+        "Пример: `123456789 Спам`\n\n"
+        "Для отмены нажми кнопку ниже.",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@router.message(lambda msg: msg.text and msg.from_user.id in ADMIN_IDS)
+async def handle_block_command(message: types.Message):
+    """Обработка команды блокировки"""
+    # Проверяем, что это не команда
+    if message.text.startswith("/"):
+        return
+    
+    # Проверяем, что мы в режиме блокировки (можно упростить)
+    if "Заблокировать пользователя" not in message.text and message.text.count(" ") == 1:
+        # Пытаемся распарсить ID и причину
+        parts = message.text.split(" ", 1)
+        if len(parts) == 2 and parts[0].isdigit():
+            user_id = int(parts[0])
+            reason = parts[1]
+            
+            if block_user(user_id, reason):
+                await message.answer(f"✅ Пользователь `{user_id}` заблокирован!\nПричина: {reason}", parse_mode="Markdown")
+            else:
+                await message.answer("❌ Ошибка при блокировке пользователя.")
+            return
+
+
+@router.callback_query(lambda c: c.data == "admin_unblock_user")
+async def admin_unblock_user(callback: types.CallbackQuery):
+    """Разблокировка пользователя"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    blocked_users = get_blocked_users()
+    
+    if not blocked_users:
+        await callback.message.edit_text(
+            "✅ Нет заблокированных пользователей.",
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        return
+    
+    keyboard_buttons = []
+    for user_id, username, first_name, reason, blocked_at in blocked_users[:10]:
+        name = first_name or "Без имени"
+        keyboard_buttons.append([
+            types.InlineKeyboardButton(
+                text=f"🔓 Разблокировать {name}",
+                callback_data=f"admin_unblock_{user_id}"
+            )
+        ])
+    
+    keyboard_buttons.append([
+        types.InlineKeyboardButton(
+            text="🔙 Назад",
+            callback_data="admin_block"
+        )
+    ])
+    
+    keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
+    
+    await callback.message.edit_text(
+        "🔓 *Выбери пользователя для разблокировки:*",
+        reply_markup=keyboard,
+        parse_mode="Markdown"
+    )
+    await callback.answer()
+
+
+@router.callback_query(lambda c: c.data.startswith("admin_unblock_"))
+async def admin_unblock_confirm(callback: types.CallbackQuery):
+    """Подтверждение разблокировки"""
+    if callback.from_user.id not in ADMIN_IDS:
+        await callback.answer("⛔ Доступ запрещён!", show_alert=True)
+        return
+    
+    user_id = int(callback.data.split("_")[2])
+    
+    if unblock_user(user_id):
+        await callback.message.edit_text(
+            f"✅ Пользователь `{user_id}` разблокирован!",
+            parse_mode="Markdown"
+        )
+    else:
+        await callback.message.edit_text(
+            f"❌ Ошибка при разблокировке пользователя `{user_id}`.",
+            parse_mode="Markdown"
+        )
+    await callback.answer()

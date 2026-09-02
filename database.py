@@ -445,3 +445,137 @@ def add_action(user_id, action_text):
     except Exception as e:
         print(f"❌ Ошибка при сохранении действия: {e}")
         return False
+
+def init_db():
+    """Создаёт базу данных и таблицы"""
+    print("🔧 ВХОД В init_db()!")
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        
+        # Таблица пользователей
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                user_id INTEGER PRIMARY KEY,
+                username TEXT,
+                first_name TEXT,
+                last_name TEXT,
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                last_active TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Таблица покупок Звёзд
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                stars_amount INTEGER,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Таблица покупок Премиума
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS premium_purchases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                duration TEXT,
+                purchase_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # Таблица сообщений
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER,
+                message_text TEXT,
+                message_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # 👇 НОВАЯ ТАБЛИЦА ДЛЯ БЛОКИРОВКИ
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS blocked_users (
+                user_id INTEGER PRIMARY KEY,
+                blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                reason TEXT
+            )
+        """)
+        
+        conn.commit()
+        conn.close()
+        print("✅ Таблицы созданы/проверены")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при инициализации БД: {e}")
+        return False
+
+# ============================================
+# ФУНКЦИИ ДЛЯ БЛОКИРОВКИ
+# ============================================
+
+def block_user(user_id, reason="Без причины"):
+    """Блокирует пользователя"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT OR REPLACE INTO blocked_users (user_id, reason)
+            VALUES (?, ?)
+        """, (user_id, reason))
+        conn.commit()
+        conn.close()
+        print(f"🔒 Пользователь {user_id} заблокирован! Причина: {reason}")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при блокировке: {e}")
+        return False
+
+def unblock_user(user_id):
+    """Разблокирует пользователя"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM blocked_users WHERE user_id = ?", (user_id,))
+        conn.commit()
+        conn.close()
+        print(f"🔓 Пользователь {user_id} разблокирован!")
+        return True
+    except Exception as e:
+        print(f"❌ Ошибка при разблокировке: {e}")
+        return False
+
+def is_user_blocked(user_id):
+    """Проверяет, заблокирован ли пользователь"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT reason FROM blocked_users WHERE user_id = ?", (user_id,))
+        result = cursor.fetchone()
+        conn.close()
+        if result:
+            return True, result[0]
+        return False, None
+    except Exception as e:
+        print(f"❌ Ошибка при проверке блокировки: {e}")
+        return False, None
+
+def get_blocked_users():
+    """Возвращает список заблокированных пользователей"""
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT b.user_id, u.username, u.first_name, b.reason, b.blocked_at
+            FROM blocked_users b
+            LEFT JOIN users u ON b.user_id = u.user_id
+            ORDER BY b.blocked_at DESC
+        """)
+        users = cursor.fetchall()
+        conn.close()
+        return users
+    except Exception as e:
+        print(f"❌ Ошибка при получении заблокированных пользователей: {e}")
+        return []
