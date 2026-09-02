@@ -341,22 +341,25 @@ async def admin_panel_back(callback: types.CallbackQuery):
         await callback.answer("⛔ Доступ запрещён!", show_alert=True)
         return
     
-    keyboard = types.InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                types.InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
-                types.InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users"),
-            ],
-            [
-                types.InlineKeyboardButton(text="📨 Рассылка", callback_data="admin_mailing"),
-                types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
-            ],
-            [
-                types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
-                types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
-            ]
+  keyboard = types.InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            types.InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
+            types.InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users"),
+        ],
+        [
+            types.InlineKeyboardButton(text="📨 Рассылка", callback_data="admin_mailing"),
+            types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
+        ],
+        [
+            types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
+            types.InlineKeyboardButton(text="🔒 Блокировка", callback_data="admin_block"),
+        ],
+        [
+            types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
         ]
-    )
+    ]
+)
     
     await callback.message.edit_text(
         "🛡️ *Админ-панель*\n\n"
@@ -677,25 +680,6 @@ async def handle_mailing_message(message: types.Message):
     finally:
         mailing_data.pop(message.from_user.id, None)
 
-keyboard = types.InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            types.InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats"),
-            types.InlineKeyboardButton(text="👥 Пользователи", callback_data="admin_users"),
-        ],
-        [
-            types.InlineKeyboardButton(text="📨 Рассылка", callback_data="admin_mailing"),
-            types.InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin_settings"),
-        ],
-        [
-            types.InlineKeyboardButton(text="📨 Сообщения", callback_data="admin_messages"),
-            types.InlineKeyboardButton(text="🔒 Блокировка", callback_data="admin_block"),
-        ],
-        [
-            types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
-        ]
-    ]
-)
 
 @router.callback_query(lambda c: c.data == "admin_block")
 async def admin_block(callback: types.CallbackQuery):
