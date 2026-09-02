@@ -4,25 +4,6 @@ from datetime import datetime, timedelta
 from aiogram import Router, types
 from aiogram.filters import Command
 from aiogram.types import Message
-from database import (
-    get_all_users, 
-    get_user_count, 
-    get_all_users_with_details, 
-    remove_user, 
-    get_inactive_users, 
-    update_user_activity,
-    get_total_stars_sold,
-    get_today_stars_sold,
-    get_today_purchases_count,
-    get_total_premium_sold,
-    get_today_premium_sold,
-    get_active_users_today,
-    get_total_messages,
-    get_messages_by_user,
-    clear_all_messages,
-    get_user_messages,
-    DB_PATH
-)
 from logger import logger
 from database import (
     get_all_users, 
@@ -363,8 +344,7 @@ async def admin_panel_back(callback: types.CallbackQuery):
             types.InlineKeyboardButton(text="ℹ️ О боте", callback_data="admin_info"),
         ]
     ]
-)
-    
+) 
     await callback.message.edit_text(
         "🛡️ *Админ-панель*\n\n"
         "Выбери действие:",
